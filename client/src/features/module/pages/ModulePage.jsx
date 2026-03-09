@@ -100,7 +100,7 @@ export default function ModulePage() {
       </div>
 
       {activeTab === "materials" && <MaterialsList materials={materials} />}
-      {activeTab === "notebook" && <NotebookEditor />}
+      {activeTab === "notebook" && <NotebookEditor moduleId={moduleId} />}
       {activeTab === "code" && module.isProgrammingModule && <CodeLab />}
     </div>
   );
