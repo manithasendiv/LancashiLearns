@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import AppLayout from "../../../components/common/AppLayout";
 import {
   getAllModulesForMaterials,
@@ -322,22 +323,35 @@ export default function ManageMaterialsPage() {
                         </span>
                       </div>
 
-                      <a
-                        href={material.fileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-block mt-3 text-blue-600 hover:underline text-sm font-medium"
-                      >
-                        Open File
-                      </a>
+                      <div className="flex gap-3 mt-4">
+                        <a
+                          href={material.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded-lg text-sm font-medium transition"
+                        >
+                          Open File
+                        </a>
+
+                        <Link
+                          to={`/admin/materials/${selectedModuleId}/${material.id}/edit`}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition"
+                        >
+                          Edit
+                        </Link>
+
+                        <button
+                          onClick={() => handleDelete(material)}
+                          className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
 
-                    <button
-                      onClick={() => handleDelete(material)}
-                      className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium transition"
-                    >
-                      Delete
-                    </button>
+                    <span className="text-xs text-slate-400 whitespace-nowrap">
+                      Latest
+                    </span>
                   </div>
                 </div>
               ))}

@@ -1,23 +1,30 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../../features/auth/services/authService";
 
-export default function AppLayout({ children }) {
+export default function AppLayout({ children, fullWidth = false }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const navItems = [{ id: "dashboard", name: "Dashboard", path: "/dashboard" }];
+  const navItems = [
+  { id: "dashboard", name: "Dashboard", path: "/dashboard" },
+  { id: "profile", name: "Profile", path: "/profile" },
+];
 
   const isActive = (path) => {
-    if (path === "/dashboard") {
-      return (
-        location.pathname === "/dashboard" ||
-        location.pathname.startsWith("/modules/") ||
-        location.pathname.startsWith("/admin")
-      );
-    }
+  if (path === "/dashboard") {
+    return (
+      location.pathname === "/dashboard" ||
+      location.pathname.startsWith("/modules/") ||
+      location.pathname.startsWith("/admin")
+    );
+  }
 
-    return location.pathname === path;
-  };
+  if (path === "/profile") {
+    return location.pathname === "/profile";
+  }
+
+  return location.pathname === path;
+};
 
   const handleLogout = async () => {
     try {
@@ -64,7 +71,15 @@ export default function AppLayout({ children }) {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
+      <main
+        className={
+          fullWidth
+            ? "w-full px-6 py-8"
+            : "max-w-7xl mx-auto px-6 py-8"
+        }
+      >
+        {children}
+      </main>
     </div>
   );
 }

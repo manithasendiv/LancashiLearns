@@ -10,7 +10,10 @@ export const getNote = async (uid, moduleId) => {
     return null;
   }
 
-  return snap.data();
+  return {
+    id: snap.id,
+    ...snap.data(),
+  };
 };
 
 export const saveNote = async (uid, moduleId, content) => {
@@ -24,7 +27,7 @@ export const saveNote = async (uid, moduleId, content) => {
       moduleId,
       content,
       lastEditedAt: serverTimestamp(),
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
     },
     { merge: true }
   );

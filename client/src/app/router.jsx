@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 import LoginPage from "../features/auth/pages/LoginPage";
 import AcademicSelectionPage from "../features/profile/pages/AcademicSelectionPage";
+import ProfilePage from "../features/profile/pages/ProfilePage";
 import DashboardPage from "../features/dashboard/pages/DashboardPage";
 import ModulePage from "../features/module/pages/ModulePage";
 import ProtectedRoute from "../components/common/ProtectedRoute";
@@ -11,6 +12,7 @@ import ManageModulesPage from "../features/admin/pages/ManageModulesPage";
 import ManageUsersPage from "../features/admin/pages/ManageUsersPage";
 import ManageMaterialsPage from "../features/admin/pages/ManageMaterialsPage";
 import EditModulePage from "../features/admin/pages/EditModulePage";
+import EditMaterialPage from "../features/admin/pages/EditMaterialPage";
 
 function Home() {
   return <Navigate to="/login" replace />;
@@ -29,6 +31,15 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <AcademicSelectionPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />
@@ -92,6 +103,15 @@ export default function AppRouter() {
           element={
             <AdminRoute>
               <ManageMaterialsPage />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/materials/:moduleId/:materialId/edit"
+          element={
+            <AdminRoute>
+              <EditMaterialPage />
             </AdminRoute>
           }
         />

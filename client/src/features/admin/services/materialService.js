@@ -4,6 +4,8 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  updateDoc,
+  getDoc,
   serverTimestamp,
 } from "firebase/firestore";
 import {
@@ -28,10 +30,31 @@ export const getAllModulesForMaterials = async () => {
 export const getMaterialsByModuleId = async (moduleId) => {
   const snapshot = await getDocs(collection(db, "modules", moduleId, "materials"));
 
-  return snapshot.docs.map((docItem) => ({
+  const materials = snapshot.docs.map((docItem) => ({
     id: docItem.id,
     ...docItem.data(),
   }));
+
+  materials.sort((a, b) => {
+    const aTime = a.uploadedAt?.seconds || 0;
+    const bTime = b.uploadedAt?.seconds || 0;
+    return bTime - aTime;
+  });
+
+  return materials;
+};
+
+// Get one material
+export const getMaterialById = async (moduleId, materialId) => {
+  const refDoc = doc(db, "modules", moduleId, "materials", materialId);
+  const snap = await getDoc(refDoc);
+
+  if (!snap.exists()) return null;
+
+  return {
+    id: snap.id,
+    ...snap.data(),
+  };
 };
 
 // Upload file to Firebase Storage and save metadata to Firestore
@@ -54,6 +77,21 @@ export const uploadMaterialForModule = async ({
     fileUrl,
     storagePath: filePath,
     uploadedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+};
+
+// Edit material metadata only
+export const updateMaterialById = async ({
+  moduleId,
+  materialId,
+  title,
+  type,
+}) => {
+  await updateDoc(doc(db, "modules", moduleId, "materials", materialId), {
+    title,
+    type,
+    updatedAt: serverTimestamp(),
   });
 };
 

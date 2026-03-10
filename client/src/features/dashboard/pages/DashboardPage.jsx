@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../../firebase/config";
 import { getUserProfile } from "../../auth/services/authService";
-import { getModulesByYearSemester } from "../../module/services/moduleService";
+import { getModulesByYearSemester, getModuleMaterials } from "../../module/services/moduleService";
+import { getUserModuleProgress } from "../../module/services/progressService";
 import ModuleCard from "../../../components/common/ModuleCard";
 import AppLayout from "../../../components/common/AppLayout";
+import PageLoader from "../../../components/common/PageLoader";
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState(null);
@@ -39,7 +41,24 @@ export default function DashboardPage() {
             userProfile.academicYear,
             userProfile.semester
           );
-          setModules(moduleList);
+
+          const modulesWithProgress = await Promise.all(
+            moduleList.map(async (module) => {
+              const materials = await getModuleMaterials(module.id);
+              const progress = await getUserModuleProgress(user.uid, module.id);
+
+              const completedCount = progress.filter((item) => item.completed).length;
+              const totalMaterials = materials.length;
+
+              return {
+                ...module,
+                completedCount,
+                totalMaterials,
+              };
+            })
+          );
+
+          setModules(modulesWithProgress);
         } else {
           setModules([]);
         }
@@ -55,8 +74,8 @@ export default function DashboardPage() {
   }, []);
 
   if (loading) {
-    return <div className="p-6">Loading dashboard...</div>;
-  }
+  return <PageLoader text="Loading dashboard..." />;
+}
 
   if (error) {
     return <div className="p-6 text-red-500">{error}</div>;
