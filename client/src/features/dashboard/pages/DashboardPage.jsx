@@ -24,10 +24,7 @@ export default function DashboardPage() {
           return;
         }
 
-        console.log("Logged in user:", user.uid);
-
         const userProfile = await getUserProfile(user.uid);
-        console.log("User profile:", userProfile);
 
         if (!userProfile) {
           setError("User profile not found.");
@@ -42,11 +39,8 @@ export default function DashboardPage() {
             userProfile.academicYear,
             userProfile.semester
           );
-
-          console.log("Modules returned:", moduleList);
           setModules(moduleList);
         } else {
-          console.log("User does not have academicYear/semester");
           setModules([]);
         }
       } catch (err) {
@@ -69,10 +63,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <AppLayout
-      title="Student Dashboard"
-      subtitle={`Year ${profile?.academicYear} • Semester ${profile?.semester}`}
-    >
+    <AppLayout>
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-slate-800">Student Dashboard</h2>
+        <p className="text-slate-600 mt-2">
+          Year {profile?.academicYear} • Semester {profile?.semester}
+        </p>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-3 mb-8">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
           <p className="text-sm text-slate-500">Student</p>
@@ -90,6 +88,13 @@ export default function DashboardPage() {
           <p className="text-sm text-slate-500">Learning Status</p>
           <h3 className="text-2xl font-bold text-green-600 mt-2">Active</h3>
         </div>
+      </div>
+
+      <div className="mb-5">
+        <h3 className="text-2xl font-bold text-slate-800">Your Modules</h3>
+        <p className="text-slate-600 mt-1">
+          Access your study materials, notebook, and coding tools from here.
+        </p>
       </div>
 
       {modules.length === 0 ? (

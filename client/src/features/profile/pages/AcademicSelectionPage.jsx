@@ -35,52 +35,106 @@ export default function AcademicSelectionPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-center mb-2">
-          Academic Selection
-        </h1>
-        <p className="text-slate-500 text-center mb-6">
-          Choose your academic year and semester
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen bg-slate-100">
+      <div className="grid min-h-screen lg:grid-cols-2">
+        <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-emerald-700 via-green-600 to-teal-700 text-white p-12">
           <div>
-            <label className="block mb-1 font-medium">Academic Year</label>
-            <select
-              value={academicYear}
-              onChange={(e) => setAcademicYear(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="1">Year 1</option>
-              <option value="2">Year 2</option>
-              <option value="3">Year 3</option>
-              <option value="4">Year 4</option>
-            </select>
+            <p className="text-sm uppercase tracking-[0.2em] text-green-100">
+              LancashiLearns
+            </p>
+            <h1 className="mt-4 text-4xl font-bold leading-tight">
+              Personalise your
+              <br />
+              learning dashboard.
+            </h1>
+            <p className="mt-6 max-w-md text-green-100 leading-relaxed">
+              Select your academic year and semester so the platform can show
+              only the modules and materials relevant to you.
+            </p>
           </div>
 
-          <div>
-            <label className="block mb-1 font-medium">Semester</label>
-            <select
-              value={semester}
-              onChange={(e) => setSemester(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="1">Semester 1</option>
-              <option value="2">Semester 2</option>
-            </select>
+          <div className="grid gap-4">
+            <div className="rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 p-5">
+              <h3 className="font-semibold text-lg">Relevant modules only</h3>
+              <p className="text-sm text-green-100 mt-2">
+                Your dashboard will automatically display the modules assigned to
+                your selected year and semester.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 p-5">
+              <h3 className="font-semibold text-lg">Built for easy access</h3>
+              <p className="text-sm text-green-100 mt-2">
+                View materials, save personal notes, and practise programming
+                from one platform.
+              </p>
+            </div>
           </div>
+        </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+        <div className="flex items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
+          <div className="w-full max-w-md">
+            <div className="mb-8 text-center lg:text-left">
+              <div className="inline-flex items-center rounded-full bg-green-100 text-green-700 px-4 py-1 text-sm font-medium">
+                Academic Setup
+              </div>
+              <h2 className="mt-4 text-3xl font-bold text-slate-800">
+                Select your academic details
+              </h2>
+              <p className="mt-2 text-slate-500">
+                Choose your academic year and semester to continue.
+              </p>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-70"
-          >
-            {loading ? "Saving..." : "Save and Continue"}
-          </button>
-        </form>
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label className="block mb-2 text-sm font-semibold text-slate-700">
+                    Academic Year
+                  </label>
+                  <select
+                    value={academicYear}
+                    onChange={(e) => setAcademicYear(e.target.value)}
+                    className="w-full border border-slate-300 bg-white rounded-xl px-4 py-3 text-slate-800 outline-none transition focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option value="1">Year 1</option>
+                    <option value="2">Year 2</option>
+                    <option value="3">Year 3</option>
+                    <option value="4">Year 4</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-sm font-semibold text-slate-700">
+                    Semester
+                  </label>
+                  <select
+                    value={semester}
+                    onChange={(e) => setSemester(e.target.value)}
+                    className="w-full border border-slate-300 bg-white rounded-xl px-4 py-3 text-slate-800 outline-none transition focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  >
+                    <option value="1">Semester 1</option>
+                    <option value="2">Semester 2</option>
+                  </select>
+                </div>
+
+                {error && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition disabled:opacity-70"
+                >
+                  {loading ? "Saving..." : "Save and Continue"}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

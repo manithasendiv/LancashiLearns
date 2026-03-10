@@ -25,93 +25,150 @@ export default function LoginPage() {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError("");
+    e.preventDefault();
+    setError("");
 
-  const { email, password } = formData;
+    const { email, password } = formData;
 
-  if (!email || !password) {
-    setError("Please fill in all fields.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const user = await loginUser({ email, password });
-
-    let profile = await getUserProfile(user.uid);
-
-    if (!profile) {
-      await createMissingUserProfile(user);
-      profile = await getUserProfile(user.uid);
+    if (!email || !password) {
+      setError("Please fill in all fields.");
+      return;
     }
 
-    if (!profile.profileCompleted) {
-      navigate("/academic-selection");
-    } else if (profile.role === "admin") {
-      navigate("/admin");
-    } else {
-      navigate("/dashboard");
+    try {
+      setLoading(true);
+
+      const user = await loginUser({ email, password });
+
+      let profile = await getUserProfile(user.uid);
+
+      if (!profile) {
+        await createMissingUserProfile(user);
+        profile = await getUserProfile(user.uid);
+      }
+
+      if (!profile.profileCompleted) {
+        navigate("/academic-selection");
+      } else if (profile.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Invalid email or password.");
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error(err);
-    setError("Invalid email or password.");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-center mb-2">Login</h1>
-        <p className="text-slate-500 text-center mb-6">
-          Sign in to continue to your learning platform
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen bg-slate-100">
+      <div className="grid min-h-screen lg:grid-cols-2">
+        <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700 text-white p-12">
           <div>
-            <label className="block mb-1 font-medium">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter your email"
-              className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <p className="text-sm uppercase tracking-[0.2em] text-blue-100">
+              LancashiLearns
+            </p>
+            <h1 className="mt-4 text-4xl font-bold leading-tight">
+              Learn smarter,
+              <br />
+              all in one place.
+            </h1>
+            <p className="mt-6 max-w-md text-blue-100 leading-relaxed">
+              Access your modules, study materials, personal notebook, and code
+              lab through one modern university learning platform.
+            </p>
           </div>
 
-          <div>
-            <label className="block mb-1 font-medium">Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="grid gap-4">
+            <div className="rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 p-5">
+              <h3 className="font-semibold text-lg">Organised learning</h3>
+              <p className="text-sm text-blue-100 mt-2">
+                View only the modules relevant to your academic year and semester.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 p-5">
+              <h3 className="font-semibold text-lg">Built for computing students</h3>
+              <p className="text-sm text-blue-100 mt-2">
+                Keep notes, open learning resources, and run code inside the same platform.
+              </p>
+            </div>
           </div>
+        </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+        <div className="flex items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
+          <div className="w-full max-w-md">
+            <div className="mb-8 text-center lg:text-left">
+              <div className="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-4 py-1 text-sm font-medium">
+                Student Login
+              </div>
+              <h2 className="mt-4 text-3xl font-bold text-slate-800">
+                Welcome back
+              </h2>
+              <p className="mt-2 text-slate-500">
+                Sign in to continue to your learning dashboard.
+              </p>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-70"
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label className="block mb-2 text-sm font-semibold text-slate-700">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Enter your university email"
+                    className="w-full border border-slate-300 bg-white rounded-xl px-4 py-3 text-slate-800 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
 
-        <p className="text-center text-sm text-slate-600 mt-6">
-          Don’t have an account?{" "}
-          <Link to="/register" className="text-blue-600 font-medium hover:underline">
-            Register
-          </Link>
-        </p>
+                <div>
+                  <label className="block mb-2 text-sm font-semibold text-slate-700">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Enter your password"
+                    className="w-full border border-slate-300 bg-white rounded-xl px-4 py-3 text-slate-800 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                {error && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition disabled:opacity-70"
+                >
+                  {loading ? "Logging in..." : "Login"}
+                </button>
+              </form>
+
+              <p className="text-center text-sm text-slate-600 mt-6">
+                Don’t have an account?{" "}
+                <Link
+                  to="/register"
+                  className="text-blue-600 font-semibold hover:underline"
+                >
+                  Register
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

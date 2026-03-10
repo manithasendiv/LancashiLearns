@@ -62,10 +62,13 @@ export default function ModulePage() {
     }`;
 
   return (
-    <AppLayout
-      title={module.title}
-      subtitle={`${module.code} • ${module.description}`}
-    >
+    <AppLayout>
+      <div className="mb-8">
+  <h2 className="text-3xl font-bold text-slate-800">{module.title}</h2>
+  <p className="text-slate-600 mt-2">
+    {module.code} • {module.description}
+  </p>
+</div>
       <div className="flex items-center justify-between mb-6">
         <Link
           to="/dashboard"

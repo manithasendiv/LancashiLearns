@@ -4,13 +4,13 @@ import LoginPage from "../features/auth/pages/LoginPage";
 import AcademicSelectionPage from "../features/profile/pages/AcademicSelectionPage";
 import DashboardPage from "../features/dashboard/pages/DashboardPage";
 import ModulePage from "../features/module/pages/ModulePage";
+import ProtectedRoute from "../components/common/ProtectedRoute";
+import AdminRoute from "../components/common/AdminRoute";
+import AdminDashboardPage from "../features/admin/pages/AdminDashboardPage";
+import ManageModulesPage from "../features/admin/pages/ManageModulesPage";
 
 function Home() {
-  return <div className="p-6 text-2xl font-bold">University Learning Platform</div>;
-}
-
-function AdminPage() {
-  return <div className="p-6">Admin Dashboard</div>;
+  return <Navigate to="/login" replace />;
 }
 
 export default function AppRouter() {
@@ -20,11 +20,53 @@ export default function AppRouter() {
         <Route path="/" element={<Home />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/academic-selection" element={<AcademicSelectionPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/modules/:moduleId" element={<ModulePage />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+
+        <Route
+          path="/academic-selection"
+          element={
+            <ProtectedRoute>
+              <AcademicSelectionPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/modules/:moduleId"
+          element={
+            <ProtectedRoute>
+              <ModulePage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminDashboardPage />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/modules"
+          element={
+            <AdminRoute>
+              <ManageModulesPage />
+            </AdminRoute>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
