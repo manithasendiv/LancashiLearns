@@ -8,6 +8,9 @@ import ProtectedRoute from "../components/common/ProtectedRoute";
 import AdminRoute from "../components/common/AdminRoute";
 import AdminDashboardPage from "../features/admin/pages/AdminDashboardPage";
 import ManageModulesPage from "../features/admin/pages/ManageModulesPage";
+import ManageUsersPage from "../features/admin/pages/ManageUsersPage";
+import ManageMaterialsPage from "../features/admin/pages/ManageMaterialsPage";
+import EditModulePage from "../features/admin/pages/EditModulePage";
 
 function Home() {
   return <Navigate to="/login" replace />;
@@ -62,6 +65,33 @@ export default function AppRouter() {
           element={
             <AdminRoute>
               <ManageModulesPage />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/modules/:moduleId/edit"
+          element={
+            <AdminRoute>
+              <EditModulePage />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <ManageUsersPage />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/materials"
+          element={
+            <AdminRoute>
+              <ManageMaterialsPage />
             </AdminRoute>
           }
         />

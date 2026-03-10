@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import AppLayout from "../../../components/common/AppLayout";
 import {
   getAllModules,
   addModule,
-  deleteModuleById
+  deleteModuleById,
 } from "../services/adminService";
 
 export default function ManageModulesPage() {
@@ -12,6 +13,7 @@ export default function ManageModulesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [formData, setFormData] = useState({
     code: "",
@@ -19,14 +21,13 @@ export default function ManageModulesPage() {
     description: "",
     academicYear: "1",
     semester: "1",
-    isProgrammingModule: false
+    isProgrammingModule: false,
   });
 
   const loadModules = async () => {
     try {
       setLoading(true);
       setError("");
-
       const data = await getAllModules();
       setModules(data);
     } catch (err) {
@@ -41,12 +42,24 @@ export default function ManageModulesPage() {
     loadModules();
   }, []);
 
+  const filteredModules = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+
+    if (!term) return modules;
+
+    return modules.filter((module) => {
+      const code = module.code?.toLowerCase() || "";
+      const title = module.title?.toLowerCase() || "";
+      return code.includes(term) || title.includes(term);
+    });
+  }, [modules, searchTerm]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
@@ -64,7 +77,6 @@ export default function ManageModulesPage() {
 
     try {
       setSaving(true);
-
       await addModule(formData);
 
       setSuccess("Module added successfully.");
@@ -74,7 +86,7 @@ export default function ManageModulesPage() {
         description: "",
         academicYear: "1",
         semester: "1",
-        isProgrammingModule: false
+        isProgrammingModule: false,
       });
 
       await loadModules();
@@ -93,10 +105,8 @@ export default function ManageModulesPage() {
     try {
       setError("");
       setSuccess("");
-
       await deleteModuleById(moduleId);
       setSuccess("Module deleted successfully.");
-
       await loadModules();
     } catch (err) {
       console.error(err);
@@ -107,11 +117,12 @@ export default function ManageModulesPage() {
   return (
     <AppLayout>
       <div className="mb-8">
-  <h2 className="text-3xl font-bold text-slate-800">Manage Modules</h2>
-  <p className="text-slate-600 mt-2">
-    Create, view, and remove academic modules
-  </p>
-</div>
+        <h2 className="text-3xl font-bold text-slate-800">Manage Modules</h2>
+        <p className="text-slate-600 mt-2">
+          Create, edit, view, and remove academic modules
+        </p>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
           <h3 className="text-xl font-bold text-slate-800 mb-4">Add New Module</h3>
@@ -226,18 +237,29 @@ export default function ManageModulesPage() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
             <h3 className="text-xl font-bold text-slate-800">All Modules</h3>
-            <span className="text-sm text-slate-500">{modules.length} total</span>
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by code or title"
+                className="border border-slate-300 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-500">
+                {filteredModules.length} found
+              </span>
+            </div>
           </div>
 
           {loading ? (
             <p className="text-slate-600">Loading modules...</p>
-          ) : modules.length === 0 ? (
-            <p className="text-slate-600">No modules found.</p>
+          ) : filteredModules.length === 0 ? (
+            <p className="text-slate-600">No matching modules found.</p>
           ) : (
             <div className="space-y-4">
-              {modules.map((module) => (
+              {filteredModules.map((module) => (
                 <div
                   key={module.id}
                   className="border border-slate-200 rounded-2xl p-5"
@@ -263,14 +285,23 @@ export default function ManageModulesPage() {
                           </span>
                         )}
                       </div>
-                    </div>
 
-                    <button
-                      onClick={() => handleDelete(module.id)}
-                      className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium transition"
-                    >
-                      Delete
-                    </button>
+                      <div className="flex gap-3 mt-4">
+                        <Link
+                          to={`/admin/modules/${module.id}/edit`}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition"
+                        >
+                          Edit
+                        </Link>
+
+                        <button
+                          onClick={() => handleDelete(module.id)}
+                          className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg text-sm font-medium transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
