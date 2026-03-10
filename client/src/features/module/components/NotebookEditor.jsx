@@ -58,38 +58,45 @@ export default function NotebookEditor({ moduleId }) {
       await saveNote(user.uid, moduleId, content);
       setMessage("Note saved successfully.");
     } catch (err) {
-        console.error("Save note error:", err);
-        setError(err.message || "Failed to save note.");
+      console.error("Save note error:", err);
+      setError(err.message || "Failed to save note.");
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <div className="bg-white rounded-2xl shadow p-5">Loading note...</div>;
+    return <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">Loading note...</div>;
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow p-5 border border-slate-200">
-      <h2 className="text-xl font-bold text-slate-800 mb-3">Personal Notebook</h2>
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">Personal Notebook</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Write and save your module notes here.
+          </p>
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-70"
+        >
+          {saving ? "Saving..." : "Save Note"}
+        </button>
+      </div>
 
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        className="w-full min-h-[300px] border border-slate-300 rounded-lg p-4 outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full min-h-[350px] border border-slate-300 rounded-xl p-4 outline-none focus:ring-2 focus:ring-blue-500 resize-none"
         placeholder="Write your notes here..."
       />
 
       {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
       {message && <p className="mt-3 text-sm text-green-600">{message}</p>}
-
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="mt-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg disabled:opacity-70"
-      >
-        {saving ? "Saving..." : "Save Note"}
-      </button>
     </div>
   );
 }
