@@ -5,58 +5,37 @@ export default function ModuleCard({ module }) {
   const total = module.totalMaterials || 0;
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  const radius = 28;
-  const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference * (1 - percent / 100);
-
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition">
-      <div className="flex items-start justify-between gap-4">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 transition hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-blue-600">{module.code}</p>
-          <h3 className="text-xl font-bold text-slate-800 mt-1">{module.title}</h3>
+          <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+            {module.code}
+          </p>
+          <h4 className="mt-2 text-lg font-bold text-slate-900">{module.title}</h4>
         </div>
 
-        <div className="relative w-16 h-16 shrink-0">
-          <svg className="w-16 h-16 -rotate-90">
-            <circle
-              cx="32"
-              cy="32"
-              r={radius}
-              stroke="#e2e8f0"
-              strokeWidth="6"
-              fill="none"
-            />
-            <circle
-              cx="32"
-              cy="32"
-              r={radius}
-              stroke="#16a34a"
-              strokeWidth="6"
-              fill="none"
-              strokeDasharray={circumference}
-              strokeDashoffset={dashOffset}
-              strokeLinecap="round"
-            />
-          </svg>
-
-          <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-slate-800">
-            {percent}%
-          </div>
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-800 shadow-sm">
+          {percent}%
         </div>
       </div>
 
-      <p className="text-slate-600 mt-4 leading-relaxed">{module.description}</p>
+      <p className="mt-4 text-sm leading-6 text-slate-600">{module.description}</p>
 
-      <div className="mt-5">
-        <p className="text-sm text-slate-600">
-          Completed {completed} of {total} materials
-        </p>
+      <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-200">
+        <div
+          className="h-full rounded-full bg-blue-600"
+          style={{ width: `${percent}%` }}
+        />
       </div>
+
+      <p className="mt-2 text-xs text-slate-500">
+        {completed} of {total} materials completed
+      </p>
 
       <Link
         to={`/modules/${module.id}`}
-        className="inline-block mt-6 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition"
+        className="mt-5 inline-block w-full rounded-xl bg-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
       >
         Open Module
       </Link>

@@ -11,6 +11,7 @@ import MaterialViewer from "../components/MaterialViewer";
 import NotebookEditor from "../components/NotebookEditor";
 import CodeLab from "../components/CodeLab";
 import CodeOutput from "../components/CodeOutput";
+import StudyAssistant from "../../../components/chat/StudyAssistant";
 import AppLayout from "../../../components/common/AppLayout";
 import PageLoader from "../../../components/common/PageLoader";
 
@@ -32,6 +33,31 @@ export default function ModulePage() {
   const totalCount = materials.length;
   const progressPercent =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  const materialTitle = useMemo(() => {
+    if (!selectedMaterial) return "";
+    return (
+      selectedMaterial.title ||
+      selectedMaterial.name ||
+      selectedMaterial.label ||
+      "Selected Material"
+    );
+  }, [selectedMaterial]);
+
+  const materialContent = useMemo(() => {
+    if (!selectedMaterial) return "";
+
+    return (
+      selectedMaterial.content ||
+      selectedMaterial.text ||
+      selectedMaterial.description ||
+      selectedMaterial.summary ||
+      selectedMaterial.notes ||
+      selectedMaterial.body ||
+      selectedMaterial.excerpt ||
+      ""
+    );
+  }, [selectedMaterial]);
 
   useEffect(() => {
     const loadModulePage = async () => {
@@ -100,7 +126,7 @@ export default function ModulePage() {
 
   return (
     <AppLayout fullWidth>
-      <div className="max-w-5xl mx-auto mb-8 flex items-start justify-between gap-6">
+      <div className="max-w-7xl mx-auto mb-8 flex items-start justify-between gap-6">
         <div>
           <h2 className="text-3xl font-bold text-slate-800">{module.title}</h2>
           <p className="text-slate-600 mt-2">
@@ -141,7 +167,7 @@ export default function ModulePage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto flex items-center justify-between mb-6">
+      <div className="max-w-7xl mx-auto flex items-center justify-between mb-6">
         <Link
           to="/dashboard"
           className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 transition"
@@ -160,7 +186,7 @@ export default function ModulePage() {
       </div>
 
       {!selectedMaterial ? (
-        <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
           <div className="mb-5">
             <h3 className="text-xl font-bold text-slate-800">Module Materials</h3>
             <p className="text-slate-600 mt-1">
@@ -177,13 +203,22 @@ export default function ModulePage() {
           />
         </div>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr] min-h-[88vh]">
+        <div className="max-w-7xl mx-auto grid gap-6 xl:grid-cols-[1.35fr_0.95fr] min-h-[88vh]">
           <div className="min-h-[88vh]">
             <MaterialViewer material={selectedMaterial} />
           </div>
 
           {module.isProgrammingModule ? (
-            <div className="grid gap-4 min-h-[88vh] grid-rows-[1.2fr_0.9fr_0.55fr]">
+            <div className="grid gap-4 min-h-[88vh] grid-rows-[0.95fr_0.8fr_0.8fr_0.5fr]">
+              <div className="min-h-0">
+                <StudyAssistant
+                  moduleTitle={module.title}
+                  materialTitle={materialTitle}
+                  materialContent={materialContent}
+                  compact
+                />
+              </div>
+
               <div className="min-h-0">
                 <NotebookEditor moduleId={moduleId} compact />
               </div>
@@ -197,8 +232,19 @@ export default function ModulePage() {
               </div>
             </div>
           ) : (
-            <div className="min-h-[88vh]">
-              <NotebookEditor moduleId={moduleId} />
+            <div className="grid gap-4 min-h-[88vh] grid-rows-[0.95fr_1fr]">
+              <div className="min-h-0">
+                <StudyAssistant
+                  moduleTitle={module.title}
+                  materialTitle={materialTitle}
+                  materialContent={materialContent}
+                  compact
+                />
+              </div>
+
+              <div className="min-h-0">
+                <NotebookEditor moduleId={moduleId} />
+              </div>
             </div>
           )}
         </div>
