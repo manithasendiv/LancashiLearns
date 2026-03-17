@@ -1,9 +1,16 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { auth } from "../../firebase/config";
+import {
+  getChatMessages,
+  saveChatMessage,
+  clearChatMessages,
+} from "../../features/student/services/chatHistoryService";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 export default function StudyAssistant({
+  moduleId,
   moduleTitle,
   materialTitle,
   materialContent,
@@ -18,10 +25,53 @@ export default function StudyAssistant({
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(true);
   const messagesRef = useRef(null);
+
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        setLoadingHistory(true);
+
+        const user = auth.currentUser;
+        if (!user || !moduleId) return;
+
+        const savedMessages = await getChatMessages(user.uid, moduleId);
+
+        if (savedMessages.length > 0) {
+          setMessages(savedMessages.map(({ role, content, id }) => ({ role, content, id })));
+        }
+      } catch (error) {
+        console.error("Failed to load chat history:", error);
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+
+    loadHistory();
+  }, [moduleId]);
 
   const handleQuickPrompt = (prompt) => {
     setInput(prompt);
+  };
+
+  const handleClearChat = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user || !moduleId) return;
+
+      await clearChatMessages(user.uid, moduleId, messages.filter((m) => m.id));
+
+      setMessages([
+        {
+          role: "assistant",
+          content:
+            "Hi, I’m your study assistant. Ask me to explain this lesson, summarize it, or generate quiz questions.",
+        },
+      ]);
+    } catch (error) {
+      console.error("Failed to clear chat:", error);
+    }
   };
 
   const handleSend = async (e) => {
@@ -30,12 +80,19 @@ export default function StudyAssistant({
     const text = input.trim();
     if (!text || sending) return;
 
-    const updatedMessages = [...messages, { role: "user", content: text }];
+    const user = auth.currentUser;
+    const userMessage = { role: "user", content: text };
+
+    const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInput("");
     setSending(true);
 
     try {
+      if (user && moduleId) {
+        await saveChatMessage(user.uid, moduleId, userMessage);
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: "POST",
         headers: {
@@ -56,23 +113,30 @@ export default function StudyAssistant({
         throw new Error(data?.error || "Failed to get chatbot response.");
       }
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data.reply || "No response generated.",
-        },
-      ]);
+      const assistantMessage = {
+        role: "assistant",
+        content: data.reply || "No response generated.",
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      if (user && moduleId) {
+        await saveChatMessage(user.uid, moduleId, assistantMessage);
+      }
     } catch (error) {
       console.error("Chatbot error:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            "The AI assistant is unavailable right now. Please make sure the backend server and Ollama are running.",
-        },
-      ]);
+
+      const fallbackMessage = {
+        role: "assistant",
+        content:
+          "The AI assistant is unavailable right now. Please make sure the backend server and Ollama are running.",
+      };
+
+      setMessages((prev) => [...prev, fallbackMessage]);
+
+      if (user && moduleId) {
+        await saveChatMessage(user.uid, moduleId, fallbackMessage);
+      }
     } finally {
       setSending(false);
 
@@ -101,9 +165,13 @@ export default function StudyAssistant({
             </p>
           </div>
 
-          <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-            AI
-          </span>
+          <button
+            type="button"
+            onClick={handleClearChat}
+            className="px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-100 hover:bg-red-100"
+          >
+            Clear Chat
+          </button>
         </div>
       </div>
 
@@ -135,26 +203,30 @@ export default function StudyAssistant({
         ref={messagesRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-slate-50/70 min-h-0"
       >
-        {messages.map((message, index) => {
-          const isUser = message.role === "user";
+        {loadingHistory ? (
+          <div className="text-sm text-slate-500">Loading chat history...</div>
+        ) : (
+          messages.map((message, index) => {
+            const isUser = message.role === "user";
 
-          return (
-            <div
-              key={`${message.role}-${index}`}
-              className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-            >
+            return (
               <div
-                className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm whitespace-pre-wrap ${
-                  isUser
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-slate-700 border border-slate-200"
-                }`}
+                key={message.id || `${message.role}-${index}`}
+                className={`flex ${isUser ? "justify-end" : "justify-start"}`}
               >
-                {message.content}
+                <div
+                  className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm whitespace-pre-wrap ${
+                    isUser
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-slate-700 border border-slate-200"
+                  }`}
+                >
+                  {message.content}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
 
         {sending && (
           <div className="flex justify-start">

@@ -23,6 +23,7 @@ export default function ModulePage() {
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [progressMap, setProgressMap] = useState({});
   const [codeOutput, setCodeOutput] = useState("Output will appear here.");
+  const [activePanel, setActivePanel] = useState("workbook");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -58,6 +59,21 @@ export default function ModulePage() {
       ""
     );
   }, [selectedMaterial]);
+
+  const availablePanels = useMemo(() => {
+    if (module?.isProgrammingModule) {
+      return [
+        { id: "workbook", label: "Workbook" },
+        { id: "code", label: "Code Lab" },
+        { id: "chatbot", label: "Chatbot" },
+      ];
+    }
+
+    return [
+      { id: "workbook", label: "Workbook" },
+      { id: "chatbot", label: "Chatbot" },
+    ];
+  }, [module]);
 
   useEffect(() => {
     const loadModulePage = async () => {
@@ -100,6 +116,11 @@ export default function ModulePage() {
     loadModulePage();
   }, [moduleId]);
 
+  useEffect(() => {
+    if (!module) return;
+    setActivePanel("workbook");
+  }, [module, selectedMaterial]);
+
   const handleToggleComplete = async (materialId, completed) => {
     try {
       const user = auth.currentUser;
@@ -114,6 +135,44 @@ export default function ModulePage() {
     } catch (err) {
       console.error("Failed to update material progress:", err);
     }
+  };
+
+  const renderRightPanelContent = () => {
+    if (activePanel === "workbook") {
+      return (
+        <div className="h-full min-h-0 overflow-hidden">
+          <NotebookEditor moduleId={moduleId} compact />
+        </div>
+      );
+    }
+
+    if (activePanel === "code" && module?.isProgrammingModule) {
+      return (
+        <div className="grid h-full min-h-0 gap-4 grid-rows-[1fr_220px] overflow-hidden">
+          <div className="min-h-0 overflow-hidden">
+            <CodeLab onOutputChange={setCodeOutput} compact />
+          </div>
+          <div className="min-h-0 overflow-hidden">
+            <CodeOutput output={codeOutput} compact />
+          </div>
+        </div>
+      );
+    }
+
+    if (activePanel === "chatbot") {
+      return (
+        <div className="h-full min-h-0 overflow-hidden">
+          <StudyAssistant
+            moduleTitle={module.title}
+            materialTitle={materialTitle}
+            materialContent={materialContent}
+            compact
+          />
+        </div>
+      );
+    }
+
+    return null;
   };
 
   if (loading) {
@@ -203,50 +262,49 @@ export default function ModulePage() {
           />
         </div>
       ) : (
-        <div className="max-w-7xl mx-auto grid gap-6 xl:grid-cols-[1.35fr_0.95fr] min-h-[88vh]">
-          <div className="min-h-[88vh]">
-            <MaterialViewer material={selectedMaterial} />
+        <div className="max-w-7xl mx-auto grid gap-6 xl:grid-cols-[1.3fr_0.9fr] h-[85vh]">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-full min-h-0 flex flex-col">
+            <div className="border-b border-slate-200 px-5 py-4 shrink-0">
+              <h3 className="text-lg font-semibold text-slate-800">
+                {materialTitle}
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">
+                Study material preview
+              </p>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <MaterialViewer material={selectedMaterial} />
+            </div>
           </div>
 
-          {module.isProgrammingModule ? (
-            <div className="grid gap-4 min-h-[88vh] grid-rows-[0.95fr_0.8fr_0.8fr_0.5fr]">
-              <div className="min-h-0">
-                <StudyAssistant
-                  moduleTitle={module.title}
-                  materialTitle={materialTitle}
-                  materialContent={materialContent}
-                  compact
-                />
-              </div>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 h-full min-h-0 flex flex-col overflow-hidden">
+            <div className="border-b border-slate-200 px-4 py-4 shrink-0">
+              <div className="flex flex-wrap gap-2">
+                {availablePanels.map((panel) => {
+                  const isActive = activePanel === panel.id;
 
-              <div className="min-h-0">
-                <NotebookEditor moduleId={moduleId} compact />
-              </div>
-
-              <div className="min-h-0">
-                <CodeLab onOutputChange={setCodeOutput} compact />
-              </div>
-
-              <div className="min-h-0">
-                <CodeOutput output={codeOutput} compact />
+                  return (
+                    <button
+                      key={panel.id}
+                      onClick={() => setActivePanel(panel.id)}
+                      className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+                        isActive
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      }`}
+                    >
+                      {panel.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          ) : (
-            <div className="grid gap-4 min-h-[88vh] grid-rows-[0.95fr_1fr]">
-              <div className="min-h-0">
-                <StudyAssistant
-                  moduleTitle={module.title}
-                  materialTitle={materialTitle}
-                  materialContent={materialContent}
-                  compact
-                />
-              </div>
 
-              <div className="min-h-0">
-                <NotebookEditor moduleId={moduleId} />
-              </div>
+            <div className="flex-1 min-h-0 overflow-hidden p-4">
+              {renderRightPanelContent()}
             </div>
-          )}
+          </div>
         </div>
       )}
     </AppLayout>
