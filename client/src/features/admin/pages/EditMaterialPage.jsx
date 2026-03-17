@@ -32,6 +32,16 @@ function getTypeBadgeClasses(type) {
   }
 }
 
+function normalizeWeekNumber(value) {
+  const num = Number(value);
+  return Number.isInteger(num) && num > 0 ? num : null;
+}
+
+function getWeekLabel(weekNumber) {
+  const normalized = normalizeWeekNumber(weekNumber);
+  return normalized ? `Week ${normalized}` : "General";
+}
+
 export default function EditMaterialPage() {
   const { moduleId, materialId } = useParams();
   const navigate = useNavigate();
@@ -39,6 +49,7 @@ export default function EditMaterialPage() {
 
   const [formData, setFormData] = useState({
     title: "",
+    weekNumber: "",
     type: "lecture-note",
   });
 
@@ -64,6 +75,7 @@ export default function EditMaterialPage() {
         setOriginalMaterial(material);
         setFormData({
           title: material.title || "",
+          weekNumber: material.weekNumber ? String(material.weekNumber) : "",
           type: material.type || "lecture-note",
         });
       } catch (err) {
@@ -101,9 +113,15 @@ export default function EditMaterialPage() {
     setSuccess("");
 
     const trimmedTitle = formData.title.trim();
+    const normalizedWeekNumber = normalizeWeekNumber(formData.weekNumber);
 
     if (!trimmedTitle || !formData.type) {
       setError("Please fill in all fields.");
+      return;
+    }
+
+    if (!normalizedWeekNumber) {
+      setError("Please enter a valid week number.");
       return;
     }
 
@@ -114,6 +132,7 @@ export default function EditMaterialPage() {
         moduleId,
         materialId,
         title: trimmedTitle,
+        weekNumber: normalizedWeekNumber,
         type: formData.type,
       });
 
@@ -143,7 +162,7 @@ export default function EditMaterialPage() {
                 Edit Material
               </h1>
               <p className="mt-3 max-w-2xl text-slate-200 leading-relaxed">
-                Update the material title and type to keep your learning
+                Update the material title, week, and type to keep your learning
                 resources organized and easy to manage.
               </p>
             </div>
@@ -167,6 +186,10 @@ export default function EditMaterialPage() {
             <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
               <div className="space-y-5">
                 <div className="h-6 w-40 rounded-lg bg-slate-200 animate-pulse" />
+                <div className="space-y-2">
+                  <div className="h-4 w-28 rounded bg-slate-200 animate-pulse" />
+                  <div className="h-12 w-full rounded-xl bg-slate-200 animate-pulse" />
+                </div>
                 <div className="space-y-2">
                   <div className="h-4 w-28 rounded bg-slate-200 animate-pulse" />
                   <div className="h-12 w-full rounded-xl bg-slate-200 animate-pulse" />
@@ -233,6 +256,26 @@ export default function EditMaterialPage() {
 
                   <div>
                     <label className="block mb-2 text-sm font-semibold text-slate-700">
+                      Week Number
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      name="weekNumber"
+                      value={formData.weekNumber}
+                      onChange={handleChange}
+                      placeholder="e.g. 1"
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    />
+                    <p className="mt-2 text-sm text-slate-500">
+                      Materials with the same week number will appear together on
+                      the student module page.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block mb-2 text-sm font-semibold text-slate-700">
                       Material Type
                     </label>
                     <select
@@ -285,9 +328,7 @@ export default function EditMaterialPage() {
 
             <div className="space-y-6">
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                <h3 className="text-lg font-bold text-slate-800">
-                  Preview
-                </h3>
+                <h3 className="text-lg font-bold text-slate-800">Preview</h3>
                 <p className="text-slate-600 mt-1">
                   Live summary of the current material details.
                 </p>
@@ -301,6 +342,10 @@ export default function EditMaterialPage() {
                       <h4 className="mt-2 text-lg font-bold text-slate-800 break-words">
                         {formData.title.trim() || "Untitled Material"}
                       </h4>
+
+                      <p className="mt-3 text-sm font-medium text-slate-600">
+                        {getWeekLabel(formData.weekNumber)}
+                      </p>
                     </div>
 
                     <span
@@ -355,8 +400,8 @@ export default function EditMaterialPage() {
                   Admin Tip
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                  Keep names short and specific so students can easily identify
-                  whether the item is a lecture note, past paper, or support
+                  Use the same week number for files that belong to the same
+                  teaching week, such as a PDF, tutorial sheet, and extra
                   resource.
                 </p>
               </div>

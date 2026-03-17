@@ -16,7 +16,33 @@ import {
 } from "firebase/storage";
 import { db, storage } from "../../../firebase/config";
 
-// Get all modules for dropdown
+function normalizeWeekNumber(value) {
+  const num = Number(value);
+  return Number.isInteger(num) && num > 0 ? num : null;
+}
+
+function sortMaterials(materials = []) {
+  return [...materials].sort((a, b) => {
+    const weekA = normalizeWeekNumber(a.weekNumber);
+    const weekB = normalizeWeekNumber(b.weekNumber);
+
+    if (weekA === null && weekB !== null) return 1;
+    if (weekA !== null && weekB === null) return -1;
+    if (weekA !== null && weekB !== null && weekA !== weekB) {
+      return weekA - weekB;
+    }
+
+    const timeA = a.uploadedAt?.seconds || 0;
+    const timeB = b.uploadedAt?.seconds || 0;
+
+    if (timeA !== timeB) {
+      return timeB - timeA;
+    }
+
+    return (a.title || "").localeCompare(b.title || "");
+  });
+}
+
 export const getAllModulesForMaterials = async () => {
   const snapshot = await getDocs(collection(db, "modules"));
 
@@ -26,45 +52,46 @@ export const getAllModulesForMaterials = async () => {
   }));
 };
 
-// Get all materials for one module
 export const getMaterialsByModuleId = async (moduleId) => {
   const snapshot = await getDocs(collection(db, "modules", moduleId, "materials"));
 
   const materials = snapshot.docs.map((docItem) => ({
     id: docItem.id,
     ...docItem.data(),
+    weekNumber: normalizeWeekNumber(docItem.data().weekNumber),
   }));
 
-  materials.sort((a, b) => {
-    const aTime = a.uploadedAt?.seconds || 0;
-    const bTime = b.uploadedAt?.seconds || 0;
-    return bTime - aTime;
-  });
-
-  return materials;
+  return sortMaterials(materials);
 };
 
-// Get one material
 export const getMaterialById = async (moduleId, materialId) => {
   const refDoc = doc(db, "modules", moduleId, "materials", materialId);
   const snap = await getDoc(refDoc);
 
   if (!snap.exists()) return null;
 
+  const data = snap.data();
+
   return {
     id: snap.id,
-    ...snap.data(),
+    ...data,
+    weekNumber: normalizeWeekNumber(data.weekNumber),
   };
 };
 
-// Upload file to Firebase Storage and save metadata to Firestore
 export const uploadMaterialForModule = async ({
   moduleId,
   title,
   type,
+  weekNumber,
   file,
 }) => {
-  const filePath = `modules/${moduleId}/${type}/${Date.now()}_${file.name}`;
+  const normalizedWeekNumber = normalizeWeekNumber(weekNumber);
+  const weekFolder = normalizedWeekNumber
+    ? `week-${normalizedWeekNumber}`
+    : "general";
+
+  const filePath = `modules/${moduleId}/${weekFolder}/${type}/${Date.now()}_${file.name}`;
   const storageRef = ref(storage, filePath);
 
   await uploadBytes(storageRef, file);
@@ -73,6 +100,7 @@ export const uploadMaterialForModule = async ({
   await addDoc(collection(db, "modules", moduleId, "materials"), {
     title,
     type,
+    weekNumber: normalizedWeekNumber,
     fileName: file.name,
     fileUrl,
     storagePath: filePath,
@@ -81,21 +109,21 @@ export const uploadMaterialForModule = async ({
   });
 };
 
-// Edit material metadata only
 export const updateMaterialById = async ({
   moduleId,
   materialId,
   title,
   type,
+  weekNumber,
 }) => {
   await updateDoc(doc(db, "modules", moduleId, "materials", materialId), {
     title,
     type,
+    weekNumber: normalizeWeekNumber(weekNumber),
     updatedAt: serverTimestamp(),
   });
 };
 
-// Delete material metadata and storage file
 export const deleteMaterialById = async (moduleId, material) => {
   if (material.storagePath) {
     const storageRef = ref(storage, material.storagePath);

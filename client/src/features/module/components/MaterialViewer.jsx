@@ -32,8 +32,7 @@ export default function MaterialViewer({ material }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 h-full flex flex-col overflow-hidden">
       <div className="border-b border-slate-200 px-5 py-4 flex items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-bold text-slate-800">{material.title}</h3>
+        <div>          
           <p className="text-sm text-slate-500 mt-1">{material.fileName}</p>
         </div>
 

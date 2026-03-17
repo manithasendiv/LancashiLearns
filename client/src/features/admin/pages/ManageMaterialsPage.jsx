@@ -34,6 +34,16 @@ function getTypeBadgeClasses(type) {
   }
 }
 
+function normalizeWeekNumber(value) {
+  const num = Number(value);
+  return Number.isInteger(num) && num > 0 ? num : null;
+}
+
+function getWeekLabel(weekNumber) {
+  const normalized = normalizeWeekNumber(weekNumber);
+  return normalized ? `Week ${normalized}` : "General";
+}
+
 export default function ManageMaterialsPage() {
   const fileInputRef = useRef(null);
 
@@ -51,6 +61,7 @@ export default function ManageMaterialsPage() {
 
   const [formData, setFormData] = useState({
     title: "",
+    weekNumber: "",
     type: "lecture-note",
     file: null,
   });
@@ -119,9 +130,13 @@ export default function ManageMaterialsPage() {
       const title = material.title?.toLowerCase() || "";
       const fileName = material.fileName?.toLowerCase() || "";
       const type = material.type || "";
+      const weekLabel = getWeekLabel(material.weekNumber).toLowerCase();
 
       const matchesSearch =
-        !term || title.includes(term) || fileName.includes(term);
+        !term ||
+        title.includes(term) ||
+        fileName.includes(term) ||
+        weekLabel.includes(term);
 
       const matchesType = typeFilter === "all" || type === typeFilter;
 
@@ -139,12 +154,18 @@ export default function ManageMaterialsPage() {
     const resources = materials.filter(
       (item) => item.type === "resource"
     ).length;
+    const weeks = new Set(
+      materials
+        .map((item) => normalizeWeekNumber(item.weekNumber))
+        .filter(Boolean)
+    ).size;
 
     return {
       total: materials.length,
       lectureNotes,
       pastPapers,
       resources,
+      weeks,
     };
   }, [materials]);
 
@@ -168,6 +189,7 @@ export default function ManageMaterialsPage() {
   const resetUploadForm = () => {
     setFormData({
       title: "",
+      weekNumber: "",
       type: "lecture-note",
       file: null,
     });
@@ -183,6 +205,7 @@ export default function ManageMaterialsPage() {
     setSuccess("");
 
     const trimmedTitle = formData.title.trim();
+    const normalizedWeekNumber = normalizeWeekNumber(formData.weekNumber);
 
     if (!selectedModuleId) {
       setError("Please select a module.");
@@ -194,12 +217,18 @@ export default function ManageMaterialsPage() {
       return;
     }
 
+    if (!normalizedWeekNumber) {
+      setError("Please enter a valid week number.");
+      return;
+    }
+
     try {
       setUploading(true);
 
       await uploadMaterialForModule({
         moduleId: selectedModuleId,
         title: trimmedTitle,
+        weekNumber: normalizedWeekNumber,
         type: formData.type,
         file: formData.file,
       });
@@ -295,7 +324,8 @@ export default function ManageMaterialsPage() {
                   Upload Material
                 </h2>
                 <p className="text-slate-600 mt-1">
-                  Add a new file to the selected academic module.
+                  Add a new file to the selected academic module. Use the same
+                  week number for multiple materials in the same week.
                 </p>
               </div>
 
@@ -304,6 +334,8 @@ export default function ManageMaterialsPage() {
                   <div className="h-4 w-28 rounded bg-slate-200 animate-pulse" />
                   <div className="h-12 w-full rounded-xl bg-slate-200 animate-pulse" />
                   <div className="h-4 w-32 rounded bg-slate-200 animate-pulse" />
+                  <div className="h-12 w-full rounded-xl bg-slate-200 animate-pulse" />
+                  <div className="h-4 w-24 rounded bg-slate-200 animate-pulse" />
                   <div className="h-12 w-full rounded-xl bg-slate-200 animate-pulse" />
                   <div className="h-4 w-24 rounded bg-slate-200 animate-pulse" />
                   <div className="h-12 w-full rounded-xl bg-slate-200 animate-pulse" />
@@ -345,6 +377,22 @@ export default function ManageMaterialsPage() {
 
                   <div>
                     <label className="block mb-2 text-sm font-semibold text-slate-700">
+                      Week Number
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      name="weekNumber"
+                      value={formData.weekNumber}
+                      onChange={handleChange}
+                      placeholder="e.g. 1"
+                      className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block mb-2 text-sm font-semibold text-slate-700">
                       Material Title
                     </label>
                     <input
@@ -352,7 +400,7 @@ export default function ManageMaterialsPage() {
                       name="title"
                       value={formData.title}
                       onChange={handleChange}
-                      placeholder="e.g. Week 1 Lecture Notes"
+                      placeholder="e.g. Arrays Lecture PDF"
                       className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     />
                   </div>
@@ -462,7 +510,7 @@ export default function ManageMaterialsPage() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search title or file name"
+                    placeholder="Search title, file, or week"
                     className="rounded-xl border border-slate-300 px-4 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                   />
 
@@ -484,6 +532,13 @@ export default function ManageMaterialsPage() {
                   <p className="text-xs font-medium text-slate-500">Total</p>
                   <p className="text-lg font-bold text-slate-800">
                     {materialStats.total}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <p className="text-xs font-medium text-slate-500">Weeks</p>
+                  <p className="text-lg font-bold text-slate-800">
+                    {materialStats.weeks}
                   </p>
                 </div>
 
@@ -580,6 +635,10 @@ export default function ManageMaterialsPage() {
                             >
                               {getTypeLabel(material.type)}
                             </span>
+
+                            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                              {getWeekLabel(material.weekNumber)}
+                            </span>
                           </div>
 
                           <p className="mt-2 text-slate-600 break-all">
@@ -616,7 +675,7 @@ export default function ManageMaterialsPage() {
                         </div>
 
                         <div className="text-xs text-slate-400 whitespace-nowrap">
-                          Resource
+                          {getWeekLabel(material.weekNumber)}
                         </div>
                       </div>
                     </div>
