@@ -21,7 +21,7 @@ const OLLAMA_API_URL =
   process.env.OLLAMA_API_URL || "http://127.0.0.1:11434/api/chat";
 
 const OLLAMA_MODEL =
-  process.env.OLLAMA_MODEL || "qwen2.5:7b";
+  process.env.OLLAMA_MODEL || "qwen2.5:1.5b";
 
 app.get("/", (req, res) => {
   res.send("API is running");
