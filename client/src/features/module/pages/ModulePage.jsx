@@ -264,15 +264,6 @@ export default function ModulePage() {
       ) : (
         <div className="max-w-7xl mx-auto grid gap-6 xl:grid-cols-[1.3fr_0.9fr] h-[85vh]">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-full min-h-0 flex flex-col">
-            <div className="border-b border-slate-200 px-5 py-4 shrink-0">
-              <h3 className="text-lg font-semibold text-slate-800">
-                {materialTitle}
-              </h3>
-              <p className="text-sm text-slate-500 mt-1">
-                Study material preview
-              </p>
-            </div>
-
             <div className="flex-1 min-h-0 overflow-hidden">
               <MaterialViewer material={selectedMaterial} />
             </div>
