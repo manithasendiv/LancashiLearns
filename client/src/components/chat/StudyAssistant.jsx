@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { auth } from "../../firebase/config";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   getChatMessages,
   saveChatMessage,
@@ -16,40 +17,68 @@ export default function StudyAssistant({
   materialContent,
   compact = false,
 }) {
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content:
-        "Hi, I’m your study assistant. Ask me to explain this lesson, summarize it, or generate quiz questions.",
-    },
-  ]);
+  const defaultMessage = {
+    role: "assistant",
+    content:
+      "Hi, I’m your study assistant. Ask me to explain this lesson, summarize it, or generate quiz questions.",
+  };
+
+  const [userId, setUserId] = useState(auth.currentUser?.uid || null);
+  const [messages, setMessages] = useState([defaultMessage]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const messagesRef = useRef(null);
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserId(user?.uid || null);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
     const loadHistory = async () => {
       try {
         setLoadingHistory(true);
 
-        const user = auth.currentUser;
-        if (!user || !moduleId) return;
+        if (!userId || !moduleId) {
+          setMessages([defaultMessage]);
+          return;
+        }
 
-        const savedMessages = await getChatMessages(user.uid, moduleId);
+        const savedMessages = await getChatMessages(userId, moduleId);
 
         if (savedMessages.length > 0) {
-          setMessages(savedMessages.map(({ role, content, id }) => ({ role, content, id })));
+          setMessages(
+            savedMessages.map(({ id, role, content }) => ({
+              id,
+              role,
+              content,
+            }))
+          );
+        } else {
+          setMessages([defaultMessage]);
         }
       } catch (error) {
         console.error("Failed to load chat history:", error);
+        setMessages([defaultMessage]);
       } finally {
         setLoadingHistory(false);
       }
     };
 
     loadHistory();
-  }, [moduleId]);
+  }, [userId, moduleId]);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      if (messagesRef.current) {
+        messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+      }
+    });
+  }, [messages, sending]);
 
   const handleQuickPrompt = (prompt) => {
     setInput(prompt);
@@ -57,18 +86,11 @@ export default function StudyAssistant({
 
   const handleClearChat = async () => {
     try {
-      const user = auth.currentUser;
-      if (!user || !moduleId) return;
+      if (!userId || !moduleId) return;
 
-      await clearChatMessages(user.uid, moduleId, messages.filter((m) => m.id));
+      await clearChatMessages(userId, moduleId);
 
-      setMessages([
-        {
-          role: "assistant",
-          content:
-            "Hi, I’m your study assistant. Ask me to explain this lesson, summarize it, or generate quiz questions.",
-        },
-      ]);
+      setMessages([defaultMessage]);
     } catch (error) {
       console.error("Failed to clear chat:", error);
     }
@@ -80,17 +102,29 @@ export default function StudyAssistant({
     const text = input.trim();
     if (!text || sending) return;
 
-    const user = auth.currentUser;
-    const userMessage = { role: "user", content: text };
+    const tempUserId = `temp-user-${Date.now()}`;
+    const userMessage = {
+      id: tempUserId,
+      role: "user",
+      content: text,
+    };
 
+    const previousMessages = [...messages];
     const updatedMessages = [...messages, userMessage];
+
     setMessages(updatedMessages);
     setInput("");
     setSending(true);
 
     try {
-      if (user && moduleId) {
-        await saveChatMessage(user.uid, moduleId, userMessage);
+      if (userId && moduleId) {
+        const savedUserMessage = await saveChatMessage(userId, moduleId, userMessage);
+
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === tempUserId ? savedUserMessage : msg
+          )
+        );
       }
 
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
@@ -103,7 +137,7 @@ export default function StudyAssistant({
           moduleTitle,
           materialTitle,
           materialContent,
-          chatHistory: updatedMessages.slice(0, -1),
+          chatHistory: previousMessages,
         }),
       });
 
@@ -113,20 +147,34 @@ export default function StudyAssistant({
         throw new Error(data?.error || "Failed to get chatbot response.");
       }
 
+      const tempAssistantId = `temp-assistant-${Date.now()}`;
       const assistantMessage = {
+        id: tempAssistantId,
         role: "assistant",
         content: data.reply || "No response generated.",
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      if (user && moduleId) {
-        await saveChatMessage(user.uid, moduleId, assistantMessage);
+      if (userId && moduleId) {
+        const savedAssistantMessage = await saveChatMessage(
+          userId,
+          moduleId,
+          assistantMessage
+        );
+
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === tempAssistantId ? savedAssistantMessage : msg
+          )
+        );
       }
     } catch (error) {
       console.error("Chatbot error:", error);
 
+      const tempFallbackId = `temp-fallback-${Date.now()}`;
       const fallbackMessage = {
+        id: tempFallbackId,
         role: "assistant",
         content:
           "The AI assistant is unavailable right now. Please make sure the backend server and Ollama are running.",
@@ -134,17 +182,21 @@ export default function StudyAssistant({
 
       setMessages((prev) => [...prev, fallbackMessage]);
 
-      if (user && moduleId) {
-        await saveChatMessage(user.uid, moduleId, fallbackMessage);
+      if (userId && moduleId) {
+        const savedFallbackMessage = await saveChatMessage(
+          userId,
+          moduleId,
+          fallbackMessage
+        );
+
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === tempFallbackId ? savedFallbackMessage : msg
+          )
+        );
       }
     } finally {
       setSending(false);
-
-      requestAnimationFrame(() => {
-        if (messagesRef.current) {
-          messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
-        }
-      });
     }
   };
 

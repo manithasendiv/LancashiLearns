@@ -186,7 +186,8 @@ export default function ModulePage() {
       return (
         <div className="h-full min-h-0 overflow-hidden">
           <StudyAssistant
-            moduleTitle={module.title}
+            moduleId={moduleId}
+            moduleTitle={module?.title || ""}
             materialTitle={materialTitle}
             materialContent={materialContent}
             compact
@@ -235,7 +236,8 @@ export default function ModulePage() {
               </h1>
 
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                {module.description || "Open materials and study inside your workspace."}
+                {module.description ||
+                  "Open materials and study inside your workspace."}
               </p>
 
               <div className="mt-5 flex flex-wrap gap-3">
