@@ -14,7 +14,13 @@ import {
   getDownloadURL,
   deleteObject,
 } from "firebase/storage";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { db, storage } from "../../../firebase/config";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+
+const MAX_CONTENT_LENGTH = 100000;
 
 function normalizeWeekNumber(value) {
   const num = Number(value);
@@ -41,6 +47,75 @@ function sortMaterials(materials = []) {
 
     return (a.title || "").localeCompare(b.title || "");
   });
+}
+
+function cleanExtractedText(text = "") {
+  return text
+    .replace(/\r/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim()
+    .slice(0, MAX_CONTENT_LENGTH);
+}
+
+async function extractPdfText(file) {
+  const arrayBuffer = await file.arrayBuffer();
+
+  const loadingTask = pdfjsLib.getDocument({
+    data: arrayBuffer,
+    useWorkerFetch: false,
+    isEvalSupported: false,
+    useSystemFonts: true,
+  });
+
+  const pdf = await loadingTask.promise;
+  const pages = [];
+
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const textContent = await page.getTextContent();
+
+    const pageText = textContent.items
+      .map((item) => item.str || "")
+      .join(" ")
+      .trim();
+
+    if (pageText) {
+      pages.push(pageText);
+    }
+  }
+
+  return cleanExtractedText(pages.join("\n\n"));
+}
+
+async function extractFileContent(file) {
+  if (!file) return "";
+
+  const mimeType = file.type || "";
+  const lowerName = file.name?.toLowerCase() || "";
+
+  try {
+    if (mimeType === "application/pdf" || lowerName.endsWith(".pdf")) {
+      return await extractPdfText(file);
+    }
+
+    if (
+      mimeType.startsWith("text/") ||
+      lowerName.endsWith(".txt") ||
+      lowerName.endsWith(".md") ||
+      lowerName.endsWith(".json") ||
+      lowerName.endsWith(".csv")
+    ) {
+      const text = await file.text();
+      return cleanExtractedText(text);
+    }
+
+    return "";
+  } catch (error) {
+    console.error("Failed to extract file content:", error);
+    return "";
+  }
 }
 
 export const getAllModulesForMaterials = async () => {
@@ -97,6 +172,8 @@ export const uploadMaterialForModule = async ({
   await uploadBytes(storageRef, file);
   const fileUrl = await getDownloadURL(storageRef);
 
+  const extractedContent = await extractFileContent(file);
+
   await addDoc(collection(db, "modules", moduleId, "materials"), {
     title,
     type,
@@ -104,6 +181,9 @@ export const uploadMaterialForModule = async ({
     fileName: file.name,
     fileUrl,
     storagePath: filePath,
+    mimeType: file.type || "",
+    size: file.size || 0,
+    content: extractedContent,
     uploadedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });

@@ -63,7 +63,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div
+      className="min-h-screen bg-slate-100"
+      data-testid="login-page"
+    >
       <div className="grid min-h-screen lg:grid-cols-2">
         <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700 text-white p-12">
           <div>
@@ -101,10 +104,16 @@ export default function LoginPage() {
         <div className="flex items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
           <div className="w-full max-w-md">
             <div className="mb-8 text-center lg:text-left">
-              <div className="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-4 py-1 text-sm font-medium">
+              <div
+                className="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-4 py-1 text-sm font-medium"
+                data-testid="login-badge"
+              >
                 Student Login
               </div>
-              <h2 className="mt-4 text-3xl font-bold text-slate-800">
+              <h2
+                className="mt-4 text-3xl font-bold text-slate-800"
+                data-testid="login-title"
+              >
                 Welcome back
               </h2>
               <p className="mt-2 text-slate-500">
@@ -113,7 +122,11 @@ export default function LoginPage() {
             </div>
 
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8">
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-5"
+                data-testid="login-form"
+              >
                 <div>
                   <label className="block mb-2 text-sm font-semibold text-slate-700">
                     Email Address
@@ -124,6 +137,7 @@ export default function LoginPage() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="Enter your university email"
+                    data-testid="login-email"
                     className="w-full border border-slate-300 bg-white rounded-xl px-4 py-3 text-slate-800 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -138,12 +152,16 @@ export default function LoginPage() {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="Enter your password"
+                    data-testid="login-password"
                     className="w-full border border-slate-300 bg-white rounded-xl px-4 py-3 text-slate-800 outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
 
                 {error && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  <div
+                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+                    data-testid="login-error"
+                  >
                     {error}
                   </div>
                 )}
@@ -151,6 +169,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
+                  data-testid="login-submit"
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition disabled:opacity-70"
                 >
                   {loading ? "Logging in..." : "Login"}
@@ -161,6 +180,7 @@ export default function LoginPage() {
                 Don’t have an account?{" "}
                 <Link
                   to="/register"
+                  data-testid="register-link"
                   className="text-blue-600 font-semibold hover:underline"
                 >
                   Register

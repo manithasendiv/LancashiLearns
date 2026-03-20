@@ -450,14 +450,18 @@ function getTypeLabel(type) {
                                       File
                                     </label>
                                     <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    name="file"
-                                    onChange={handleChange}
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700"
-                                    />
+                                        ref={fileInputRef}
+                                        type="file"
+                                        name="file"
+                                        accept=".pdf,.txt,.md,.json,.csv,.doc,.docx,.ppt,.pptx"
+                                        onChange={handleChange}
+                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700"
+                                      />
                                     <p className="mt-2 text-sm text-slate-500">
                                       Selected: {formData.file?.name || "No file selected"}
+                                    </p>
+                                    <p className="mt-1 text-xs text-slate-400">
+                                      PDF and text-based files will be indexed for the chatbot when possible.
                                     </p>
                                   </div>
 

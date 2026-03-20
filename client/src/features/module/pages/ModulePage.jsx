@@ -15,11 +15,12 @@ import StudyAssistant from "../../../components/chat/StudyAssistant";
 import AppLayout from "../../../components/common/AppLayout";
 import PageLoader from "../../../components/common/PageLoader";
 
-function PanelTab({ active, onClick, children }) {
+function PanelTab({ active, onClick, children, testId }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      data-testid={testId}
       className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
         active
           ? "bg-slate-900 text-white shadow-sm"
@@ -163,7 +164,10 @@ export default function ModulePage() {
   const renderRightPanelContent = () => {
     if (activePanel === "workbook") {
       return (
-        <div className="h-full min-h-0 overflow-hidden">
+        <div
+          className="h-full min-h-0 overflow-hidden"
+          data-testid="workbook-panel"
+        >
           <NotebookEditor moduleId={moduleId} compact />
         </div>
       );
@@ -171,11 +175,17 @@ export default function ModulePage() {
 
     if (activePanel === "code" && module?.isProgrammingModule) {
       return (
-        <div className="grid h-full min-h-0 gap-4 grid-rows-[1fr_220px] overflow-hidden">
+        <div
+          className="grid h-full min-h-0 gap-4 grid-rows-[1fr_220px] overflow-hidden"
+          data-testid="code-panel"
+        >
           <div className="min-h-0 overflow-hidden rounded-3xl">
             <CodeLab onOutputChange={setCodeOutput} compact />
           </div>
-          <div className="min-h-0 overflow-hidden rounded-3xl">
+          <div
+            className="min-h-0 overflow-hidden rounded-3xl"
+            data-testid="code-output-panel"
+          >
             <CodeOutput output={codeOutput} compact />
           </div>
         </div>
@@ -184,7 +194,10 @@ export default function ModulePage() {
 
     if (activePanel === "chatbot") {
       return (
-        <div className="h-full min-h-0 overflow-hidden">
+        <div
+          className="h-full min-h-0 overflow-hidden"
+          data-testid="chatbot-panel"
+        >
           <StudyAssistant
             moduleId={moduleId}
             moduleTitle={module?.title || ""}
@@ -207,7 +220,10 @@ export default function ModulePage() {
     return (
       <AppLayout fullWidth>
         <div className="mx-auto max-w-7xl">
-          <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-5 text-red-600">
+          <div
+            className="rounded-3xl border border-red-200 bg-red-50 px-6 py-5 text-red-600"
+            data-testid="module-error"
+          >
             {error}
           </div>
         </div>
@@ -217,7 +233,7 @@ export default function ModulePage() {
 
   return (
     <AppLayout fullWidth>
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-6" data-testid="module-page">
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0 flex-1">
@@ -231,7 +247,10 @@ export default function ModulePage() {
                 <InfoChip>{totalCount} materials</InfoChip>
               </div>
 
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+              <h1
+                className="text-3xl font-semibold tracking-tight text-slate-900"
+                data-testid="module-title"
+              >
                 {module.title}
               </h1>
 
@@ -243,6 +262,7 @@ export default function ModulePage() {
               <div className="mt-5 flex flex-wrap gap-3">
                 <Link
                   to="/dashboard"
+                  data-testid="back-dashboard"
                   className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                 >
                   Back to Dashboard
@@ -252,6 +272,7 @@ export default function ModulePage() {
                   <button
                     type="button"
                     onClick={() => setSelectedMaterial(null)}
+                    data-testid="back-materials"
                     className="inline-flex items-center rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-200"
                   >
                     Back to Materials
@@ -260,7 +281,10 @@ export default function ModulePage() {
               </div>
             </div>
 
-            <div className="w-full rounded-3xl border border-slate-200 bg-slate-50 p-5 lg:max-w-xs">
+            <div
+              className="w-full rounded-3xl border border-slate-200 bg-slate-50 p-5 lg:max-w-xs"
+              data-testid="module-progress-card"
+            >
               <div className="flex items-center gap-4">
                 <div className="relative h-20 w-20 shrink-0">
                   <svg className="h-20 w-20 -rotate-90">
@@ -286,7 +310,10 @@ export default function ModulePage() {
                       strokeLinecap="round"
                     />
                   </svg>
-                  <div className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-slate-900">
+                  <div
+                    className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-slate-900"
+                    data-testid="module-progress-percent"
+                  >
                     {progressPercent}%
                   </div>
                 </div>
@@ -295,7 +322,10 @@ export default function ModulePage() {
                   <p className="text-sm font-medium text-slate-900">
                     Module Progress
                   </p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p
+                    className="mt-1 text-sm text-slate-500"
+                    data-testid="module-progress-text"
+                  >
                     {completedCount} of {totalCount} materials completed
                   </p>
                 </div>
@@ -305,6 +335,7 @@ export default function ModulePage() {
                 <div
                   className="h-full rounded-full bg-slate-900 transition-all"
                   style={{ width: `${progressPercent}%` }}
+                  data-testid="module-progress-bar"
                 />
               </div>
             </div>
@@ -312,7 +343,10 @@ export default function ModulePage() {
         </div>
 
         {!selectedMaterial ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div
+            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+            data-testid="materials-section"
+          >
             <div className="mb-5">
               <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
                 Module Materials
@@ -331,30 +365,43 @@ export default function ModulePage() {
             />
           </div>
         ) : (
-          <div className="grid h-[85vh] gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.95fr)]">
+          <div
+            className="grid h-[85vh] gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.95fr)]"
+            data-testid="workspace-layout"
+          >
             <div className="flex min-h-0 h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 px-5 py-4">
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
                   Material Viewer
                 </p>
-                <h3 className="mt-1 truncate text-lg font-semibold text-slate-900">
+                <h3
+                  className="mt-1 truncate text-lg font-semibold text-slate-900"
+                  data-testid="selected-material-title"
+                >
                   {materialTitle}
                 </h3>
               </div>
 
-              <div className="flex-1 min-h-0 overflow-hidden">
+              <div
+                className="flex-1 min-h-0 overflow-hidden"
+                data-testid="material-viewer"
+              >
                 <MaterialViewer material={selectedMaterial} />
               </div>
             </div>
 
             <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 px-4 py-4">
-                <div className="inline-flex flex-wrap gap-2 rounded-2xl bg-slate-100 p-1.5">
+                <div
+                  className="inline-flex flex-wrap gap-2 rounded-2xl bg-slate-100 p-1.5"
+                  data-testid="module-panel-tabs"
+                >
                   {availablePanels.map((panel) => (
                     <PanelTab
                       key={panel.id}
                       active={activePanel === panel.id}
                       onClick={() => setActivePanel(panel.id)}
+                      testId={`panel-tab-${panel.id}`}
                     >
                       {panel.label}
                     </PanelTab>
@@ -362,7 +409,10 @@ export default function ModulePage() {
                 </div>
               </div>
 
-              <div className="flex-1 min-h-0 overflow-hidden p-4 bg-slate-50/50">
+              <div
+                className="flex-1 min-h-0 overflow-hidden p-4 bg-slate-50/50"
+                data-testid="right-panel-content"
+              >
                 {renderRightPanelContent()}
               </div>
             </div>

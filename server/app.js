@@ -91,12 +91,12 @@ app.post("/api/chat", async (req, res) => {
       moduleTitle,
       materialTitle,
       materialContent,
-      chatHistory = [],
+      chatHistory = []
     } = req.body;
 
     if (!message || !message.trim()) {
       return res.status(400).json({
-        error: "Message is required.",
+        error: "Message is required."
       });
     }
 
@@ -104,21 +104,6 @@ app.post("/api/chat", async (req, res) => {
       typeof materialContent === "string"
         ? materialContent.slice(0, 6000)
         : "";
-
-    const safeHistory = Array.isArray(chatHistory)
-      ? chatHistory
-          .filter(
-            (item) =>
-              item &&
-              typeof item.role === "string" &&
-              typeof item.content === "string"
-          )
-          .slice(-8)
-          .map((item) => ({
-            role: item.role,
-            content: item.content,
-          }))
-      : [];
 
     const systemPrompt = `
 You are a helpful study assistant inside a University Learning Platform.
@@ -142,13 +127,20 @@ ${safeMaterialContent || "No lesson content provided."}
     const messages = [
       {
         role: "system",
-        content: systemPrompt,
+        content: systemPrompt
       },
-      ...safeHistory,
+      ...chatHistory
+        .filter(
+          (item) =>
+            item &&
+            typeof item.role === "string" &&
+            typeof item.content === "string"
+        )
+        .slice(-8),
       {
         role: "user",
-        content: message.trim(),
-      },
+        content: message.trim()
+      }
     ];
 
     const ollamaResponse = await axios.post(
@@ -156,19 +148,18 @@ ${safeMaterialContent || "No lesson content provided."}
       {
         model: OLLAMA_MODEL,
         messages,
-        stream: false,
+        stream: false
       },
       {
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        timeout: 120000,
+        timeout: 120000
       }
     );
 
     const reply =
       ollamaResponse.data?.message?.content?.trim() ||
-      ollamaResponse.data?.response?.trim() ||
       "No response generated.";
 
     return res.json({ reply });
@@ -179,16 +170,9 @@ ${safeMaterialContent || "No lesson content provided."}
     );
 
     return res.status(500).json({
-      error:
-        error.response?.data?.error ||
-        error.message ||
-        "AI chatbot request failed.",
+      error: "AI chatbot request failed."
     });
   }
 });
 
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+export default app;

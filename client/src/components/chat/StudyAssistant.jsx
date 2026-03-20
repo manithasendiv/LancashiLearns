@@ -10,6 +10,9 @@ import {
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
+const DEFAULT_ASSISTANT_TEXT =
+  "Hi, I’m your study assistant. Ask me to explain this lesson, summarize it, or generate quiz questions.";
+
 export default function StudyAssistant({
   moduleId,
   moduleTitle,
@@ -19,11 +22,11 @@ export default function StudyAssistant({
 }) {
   const defaultMessage = {
     role: "assistant",
-    content:
-      "Hi, I’m your study assistant. Ask me to explain this lesson, summarize it, or generate quiz questions.",
+    content: DEFAULT_ASSISTANT_TEXT,
   };
 
-  const [userId, setUserId] = useState(auth.currentUser?.uid || null);
+  const [userId, setUserId] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
   const [messages, setMessages] = useState([defaultMessage]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -33,6 +36,7 @@ export default function StudyAssistant({
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUserId(user?.uid || null);
+      setAuthReady(true);
     });
 
     return () => unsubscribe();
@@ -40,6 +44,8 @@ export default function StudyAssistant({
 
   useEffect(() => {
     const loadHistory = async () => {
+      if (!authReady) return;
+
       try {
         setLoadingHistory(true);
 
@@ -70,7 +76,7 @@ export default function StudyAssistant({
     };
 
     loadHistory();
-  }, [userId, moduleId]);
+  }, [authReady, userId, moduleId]);
 
   useEffect(() => {
     requestAnimationFrame(() => {
@@ -89,7 +95,6 @@ export default function StudyAssistant({
       if (!userId || !moduleId) return;
 
       await clearChatMessages(userId, moduleId);
-
       setMessages([defaultMessage]);
     } catch (error) {
       console.error("Failed to clear chat:", error);
@@ -102,14 +107,23 @@ export default function StudyAssistant({
     const text = input.trim();
     if (!text || sending) return;
 
-    const tempUserId = `temp-user-${Date.now()}`;
+    if (!authReady || !userId) {
+      console.error("User auth is not ready.");
+      return;
+    }
+
+    if (!moduleId) {
+      console.error("moduleId is missing in StudyAssistant.");
+      return;
+    }
+
+    const tempUserMessageId = `temp-user-${Date.now()}`;
     const userMessage = {
-      id: tempUserId,
+      id: tempUserMessageId,
       role: "user",
       content: text,
     };
 
-    const previousMessages = [...messages];
     const updatedMessages = [...messages, userMessage];
 
     setMessages(updatedMessages);
@@ -117,15 +131,23 @@ export default function StudyAssistant({
     setSending(true);
 
     try {
-      if (userId && moduleId) {
-        const savedUserMessage = await saveChatMessage(userId, moduleId, userMessage);
+      const savedUserMessage = await saveChatMessage(userId, moduleId, userMessage);
 
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === tempUserId ? savedUserMessage : msg
-          )
-        );
-      }
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === tempUserMessageId ? savedUserMessage : msg
+        )
+      );
+
+      const usableHistory = messages
+        .filter(
+          (msg) =>
+            msg &&
+            typeof msg.role === "string" &&
+            typeof msg.content === "string" &&
+            !(msg.role === "assistant" && msg.content === DEFAULT_ASSISTANT_TEXT)
+        )
+        .map(({ role, content }) => ({ role, content }));
 
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: "POST",
@@ -137,38 +159,43 @@ export default function StudyAssistant({
           moduleTitle,
           materialTitle,
           materialContent,
-          chatHistory: previousMessages,
+          chatHistory: usableHistory,
         }),
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data = {};
+
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        throw new Error(`Invalid server response: ${rawText}`);
+      }
 
       if (!response.ok) {
         throw new Error(data?.error || "Failed to get chatbot response.");
       }
 
-      const tempAssistantId = `temp-assistant-${Date.now()}`;
+      const tempAssistantMessageId = `temp-assistant-${Date.now()}`;
       const assistantMessage = {
-        id: tempAssistantId,
+        id: tempAssistantMessageId,
         role: "assistant",
         content: data.reply || "No response generated.",
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      if (userId && moduleId) {
-        const savedAssistantMessage = await saveChatMessage(
-          userId,
-          moduleId,
-          assistantMessage
-        );
+      const savedAssistantMessage = await saveChatMessage(
+        userId,
+        moduleId,
+        assistantMessage
+      );
 
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === tempAssistantId ? savedAssistantMessage : msg
-          )
-        );
-      }
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === tempAssistantMessageId ? savedAssistantMessage : msg
+        )
+      );
     } catch (error) {
       console.error("Chatbot error:", error);
 
@@ -182,7 +209,7 @@ export default function StudyAssistant({
 
       setMessages((prev) => [...prev, fallbackMessage]);
 
-      if (userId && moduleId) {
+      try {
         const savedFallbackMessage = await saveChatMessage(
           userId,
           moduleId,
@@ -194,6 +221,8 @@ export default function StudyAssistant({
             msg.id === tempFallbackId ? savedFallbackMessage : msg
           )
         );
+      } catch (saveError) {
+        console.error("Failed to save fallback message:", saveError);
       }
     } finally {
       setSending(false);
@@ -300,7 +329,7 @@ export default function StudyAssistant({
           />
           <button
             type="submit"
-            disabled={sending || !input.trim()}
+            disabled={sending || !input.trim() || !authReady}
             className="self-end bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-3 rounded-2xl text-sm font-medium transition"
           >
             Send
