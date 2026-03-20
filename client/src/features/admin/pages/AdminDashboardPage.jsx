@@ -294,25 +294,6 @@ export default function AdminDashboardPage() {
 
             <div className="grid gap-5 md:grid-cols-3">
               <ActionCard
-                to="/admin/modules"
-                badge="Academic Structure"
-                title="Module Management"
-                description="Create, update, and organize academic modules by year and semester."
-                icon={
-                  <svg
-                    className="h-6 w-6 text-violet-600"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 6 3 10.5 12 15l9-4.5L12 6Z" />
-                    <path d="M3 15l9 4.5 9-4.5" />
-                  </svg>
-                }
-              />
-
-              <ActionCard
                 to="/admin/users"
                 badge="Access Control"
                 title="User Management"
@@ -328,6 +309,25 @@ export default function AdminDashboardPage() {
                     <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
                     <circle cx="9.5" cy="7" r="4" />
                     <path d="M20 8v6M23 11h-6" />
+                  </svg>
+                }
+              />
+
+              <ActionCard
+                to="/admin/modules"
+                badge="Academic Structure"
+                title="Module Management"
+                description="Create, update, and organize academic modules by year and semester."
+                icon={
+                  <svg
+                    className="h-6 w-6 text-violet-600"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 6 3 10.5 12 15l9-4.5L12 6Z" />
+                    <path d="M3 15l9 4.5 9-4.5" />
                   </svg>
                 }
               />

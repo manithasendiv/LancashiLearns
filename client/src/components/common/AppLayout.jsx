@@ -6,8 +6,12 @@ export default function AppLayout({ children, fullWidth = false }) {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const isAdminPage = location.pathname.startsWith("/admin");
+  const dashboardPath = isAdminPage ? "/admin" : "/dashboard";
+  const logoPath = isAdminPage ? "/admin" : "/dashboard";
+
   const navItems = [
-    { id: "dashboard", name: "Dashboard", path: "/dashboard" },
+    { id: "dashboard", name: "Dashboard", path: dashboardPath },
     { id: "profile", name: "Profile", path: "/profile" },
   ];
 
@@ -15,9 +19,12 @@ export default function AppLayout({ children, fullWidth = false }) {
     if (path === "/dashboard") {
       return (
         location.pathname === "/dashboard" ||
-        location.pathname.startsWith("/modules/") ||
-        location.pathname.startsWith("/admin")
+        location.pathname.startsWith("/modules/")
       );
+    }
+
+    if (path === "/admin") {
+      return location.pathname.startsWith("/admin");
     }
 
     if (path === "/profile") {
@@ -28,6 +35,10 @@ export default function AppLayout({ children, fullWidth = false }) {
   };
 
   const getPageTitle = () => {
+    if (location.pathname.startsWith("/admin")) {
+      return "Admin Panel";
+    }
+
     if (
       location.pathname === "/dashboard" ||
       location.pathname.startsWith("/modules/")
@@ -37,10 +48,6 @@ export default function AppLayout({ children, fullWidth = false }) {
 
     if (location.pathname === "/profile") {
       return "Profile";
-    }
-
-    if (location.pathname.startsWith("/admin")) {
-      return "Admin Panel";
     }
 
     return "LancashiLearns";
@@ -60,10 +67,10 @@ export default function AppLayout({ children, fullWidth = false }) {
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex min-h-[78px] items-center justify-between gap-4">
-            <Link to="/dashboard" className="flex items-center gap-3">
-              <img 
-                src={logo} 
-                alt="LancashiLearns" 
+            <Link to={logoPath} className="flex items-center gap-3">
+              <img
+                src={logo}
+                alt="LancashiLearns"
                 className="h-11 w-11 rounded-2xl shadow-md"
               />
 
