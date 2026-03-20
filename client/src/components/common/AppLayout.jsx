@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../../features/auth/services/authService";
 import logo from "../../assets/logo.png";
 
-export default function AppLayout({ children, fullWidth = false }) {
+export default function AppLayout({ children, fullWidth = true }) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -63,10 +63,10 @@ export default function AppLayout({ children, fullWidth = false }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 text-slate-800">
-      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="flex min-h-[78px] items-center justify-between gap-4">
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-blue-50 text-slate-800">
+      <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
+        <div className="w-full px-4 md:px-6 xl:px-8">
+          <div className="flex min-h-[78px] w-full items-center justify-between gap-4">
             <Link to={logoPath} className="flex items-center gap-3">
               <img
                 src={logo}
@@ -138,8 +138,8 @@ export default function AppLayout({ children, fullWidth = false }) {
       <main
         className={
           fullWidth
-            ? "w-full px-4 py-6 md:px-6 md:py-8"
-            : "mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8"
+            ? "w-full px-4 py-6 md:px-6 md:py-8 xl:px-8"
+            : "w-full px-4 py-6 md:px-6 md:py-8 xl:px-8"
         }
       >
         {children}

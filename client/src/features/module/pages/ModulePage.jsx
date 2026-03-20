@@ -219,7 +219,7 @@ export default function ModulePage() {
   if (error) {
     return (
       <AppLayout fullWidth>
-        <div className="mx-auto max-w-7xl">
+        <div className="w-full">
           <div
             className="rounded-3xl border border-red-200 bg-red-50 px-6 py-5 text-red-600"
             data-testid="module-error"
@@ -233,8 +233,8 @@ export default function ModulePage() {
 
   return (
     <AppLayout fullWidth>
-      <div className="mx-auto max-w-7xl space-y-6" data-testid="module-page">
-        <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="w-full space-y-6" data-testid="module-page">
+        <div className="w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0 flex-1">
               <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -254,7 +254,7 @@ export default function ModulePage() {
                 {module.title}
               </h1>
 
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
                 {module.description ||
                   "Open materials and study inside your workspace."}
               </p>
@@ -282,7 +282,7 @@ export default function ModulePage() {
             </div>
 
             <div
-              className="w-full rounded-3xl border border-slate-200 bg-slate-50 p-5 lg:max-w-xs"
+              className="w-full rounded-3xl border border-slate-200 bg-slate-50 p-5 lg:w-[320px] lg:min-w-[320px]"
               data-testid="module-progress-card"
             >
               <div className="flex items-center gap-4">
@@ -344,7 +344,7 @@ export default function ModulePage() {
 
         {!selectedMaterial ? (
           <div
-            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+            className="w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
             data-testid="materials-section"
           >
             <div className="mb-5">
@@ -366,7 +366,7 @@ export default function ModulePage() {
           </div>
         ) : (
           <div
-            className="grid h-[85vh] gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.95fr)]"
+            className="grid h-[85vh] w-full gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(420px,1fr)]"
             data-testid="workspace-layout"
           >
             <div className="flex min-h-0 h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -410,7 +410,7 @@ export default function ModulePage() {
               </div>
 
               <div
-                className="flex-1 min-h-0 overflow-hidden p-4 bg-slate-50/50"
+                className="flex-1 min-h-0 overflow-hidden bg-slate-50/50 p-4"
                 data-testid="right-panel-content"
               >
                 {renderRightPanelContent()}
