@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import axios from "axios";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
@@ -17,11 +18,9 @@ const languageMap = {
   csharp: 51
 };
 
-const OLLAMA_API_URL =
-  process.env.OLLAMA_API_URL || "http://127.0.0.1:11434/api/chat";
+const OLLAMA_API_URL = process.env.OLLAMA_API_URL;
 
-const OLLAMA_MODEL =
-  process.env.OLLAMA_MODEL || "qwen2.5:1.5b";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL;
 
 app.get("/", (req, res) => {
   res.send("API is running");
@@ -187,8 +186,14 @@ ${safeMaterialContent || "No lesson content provided."}
   }
 });
 
-const PORT = process.env.PORT || 5000;
+export default app;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
+
+if (isMainModule) {
+  const PORT = process.env.PORT;
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}

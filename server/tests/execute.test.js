@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
-import app from "../app.js";
+import app from "../index.js";
+import axios from "axios";
 
 test("POST /api/execute rejects empty payload", async () => {
   const res = await request(app).post("/api/execute").send({});
@@ -9,7 +10,7 @@ test("POST /api/execute rejects empty payload", async () => {
   assert.equal(res.statusCode, 400);
   assert.equal(
     res.body.error,
-    "Language and sourceCode are required."
+    "Language and source code are required."
   );
 });
 
@@ -20,15 +21,27 @@ test("POST /api/execute rejects unsupported language", async () => {
   });
 
   assert.equal(res.statusCode, 400);
-  assert.equal(res.body.error, "Unsupported language.");
+  assert.equal(res.body.error, "Unsupported language selected.");
 });
 
 test("POST /api/execute accepts valid payload", async () => {
-  const res = await request(app).post("/api/execute").send({
-    language: "javascript",
-    sourceCode: "console.log('Hello');",
+  const originalPost = axios.post;
+
+  axios.post = async () => ({
+    data: {
+      stdout: "Hello\n",
+    },
   });
 
-  assert.equal(res.statusCode, 200);
-  assert.equal(res.body.success, true);
+  try {
+    const res = await request(app).post("/api/execute").send({
+      language: "javascript",
+      sourceCode: "console.log('Hello');",
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.output, "Hello\n");
+  } finally {
+    axios.post = originalPost;
+  }
 });

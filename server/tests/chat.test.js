@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
-import app from "../app.js";
+import app from "../index.js";
 
 test("POST /api/chat rejects missing message", async () => {
   const res = await request(app).post("/api/chat").send({});
