@@ -36,6 +36,7 @@ export default function ModuleCard({ module }) {
       <Link
         to={`/modules/${module.id}`}
         className="mt-5 inline-block w-full rounded-xl bg-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
+        data-testid="module-card"      
       >
         Open Module
       </Link>

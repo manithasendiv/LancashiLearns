@@ -273,7 +273,10 @@ export default function NotebookEditor({ moduleId, compact = false }) {
   }
 
   return (
-    <div className="notebook-editor h-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div className="notebook-editor h-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+      data-testid="notebook-editor"
+    >
+      
       <style>{`
         .notebook-editor .tiptap {
           caret-color: #0f172a;
@@ -344,6 +347,7 @@ export default function NotebookEditor({ moduleId, compact = false }) {
   <button
     type="button"
     onClick={() => handleSave(false)}
+    data-testid="notebook-save"
     disabled={saving}
     className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-70"
   >

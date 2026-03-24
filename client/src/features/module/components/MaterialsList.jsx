@@ -92,6 +92,7 @@ export default function MaterialsList({
                   <div className="flex items-center justify-between gap-4 min-h-[110px]">
                     <button
                       type="button"
+                      data-testid="module-material-button"
                       onClick={() => onSelectMaterial(item)}
                       className="flex-1 text-left"
                     >

@@ -23,13 +23,13 @@ describe("Student login flow", function () {
       10000
     );
     await emailInput.clear();
-    await emailInput.sendKeys("student@example.com");
+    await emailInput.sendKeys("manitha20030809@gmail.com");
 
     const passwordInput = await driver.findElement(
       By.css("[data-testid='login-password']")
     );
     await passwordInput.clear();
-    await passwordInput.sendKeys("studentpassword");
+    await passwordInput.sendKeys(".Ms501931");
 
     await driver.findElement(By.css("[data-testid='login-submit']")).click();
 

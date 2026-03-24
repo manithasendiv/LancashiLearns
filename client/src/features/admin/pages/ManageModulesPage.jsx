@@ -254,6 +254,7 @@ const handleAddModule = async (e) => {
           <input
           type="text"
           name="code"
+          data-testid="module-code"
           value={formData.code}
           onChange={handleChange}
           placeholder="e.g. CS201"
@@ -268,6 +269,7 @@ const handleAddModule = async (e) => {
           <input
           type="text"
           name="title"
+          data-testid="module-title"
           value={formData.title}
           onChange={handleChange}
           placeholder="e.g. Data Structures"
@@ -281,6 +283,7 @@ const handleAddModule = async (e) => {
           </label>
           <textarea
           name="description"
+          data-testid="module-description"
           value={formData.description}
           onChange={handleChange}
           placeholder="Enter module description"
@@ -295,6 +298,7 @@ const handleAddModule = async (e) => {
             </label>
             <select
             name="academicYear"
+            data-testid="module-year"
             value={formData.academicYear}
             onChange={handleChange}
             className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
@@ -314,6 +318,7 @@ const handleAddModule = async (e) => {
           name="semester"
           value={formData.semester}
           onChange={handleChange}
+          data-testid="module-semester"
           className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
           >
         <option value="1">Semester 1</option>
@@ -334,12 +339,13 @@ const handleAddModule = async (e) => {
     </label>
 
     <button
-    type="submit"
-    disabled={saving}
-    className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
-    >
-    {saving ? "Saving Module..." : "Add Module"}
-  </button>
+  type="submit"
+  disabled={saving}
+  data-testid="add-module-button"
+  className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+>
+  {saving ? "Saving Module..." : "Add Module"}
+</button>
 </form>
 </div>
 

@@ -2,7 +2,7 @@ const assert = require("assert");
 const { By, until } = require("selenium-webdriver");
 const { buildDriver } = require("../../selenium/driver.cjs");
 
-describe("Logout flow", function () {
+describe("Dashboard modules visibility", function () {
   this.timeout(30000);
 
   let driver;
@@ -15,7 +15,7 @@ describe("Logout flow", function () {
     if (driver) await driver.quit();
   });
 
-  it("logs out the user and redirects to login page", async () => {
+  it("shows module cards after student login", async () => {
     await driver.get("http://localhost:5173/login");
 
     await driver.findElement(By.css("[data-testid='login-email']")).sendKeys("manitha20030809@gmail.com");
@@ -23,15 +23,9 @@ describe("Logout flow", function () {
     await driver.findElement(By.css("[data-testid='login-submit']")).click();
 
     await driver.wait(until.urlContains("/dashboard"), 10000);
+    await driver.wait(until.elementsLocated(By.css("[data-testid='module-card']")), 10000);
 
-    await driver.findElement(By.css("[data-testid='logout-button']")).click();
-
-    await driver.wait(until.urlContains("/login"), 10000);
-
-    const currentUrl = await driver.getCurrentUrl();
-    assert.ok(currentUrl.includes("/login"));
-
-    const loginButton = await driver.findElement(By.css("[data-testid='login-submit']"));
-    assert.ok(await loginButton.isDisplayed());
+    const modules = await driver.findElements(By.css("[data-testid='module-card']"));
+    assert.ok(modules.length > 0, "Expected at least one module card on dashboard");
   });
 });
