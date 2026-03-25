@@ -13,6 +13,7 @@ import ManageUsersPage from "../features/admin/pages/ManageUsersPage";
 import ManageMaterialsPage from "../features/admin/pages/ManageMaterialsPage";
 import EditModulePage from "../features/admin/pages/EditModulePage";
 import EditMaterialPage from "../features/admin/pages/EditMaterialPage";
+import MyStoragePage from "../features/storage/pages/MyStoragePage";
 
 function Home() {
   return <Navigate to="/login" replace />;
@@ -113,6 +114,15 @@ export default function AppRouter() {
             <AdminRoute>
               <EditMaterialPage />
             </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/storage"
+          element={
+            <ProtectedRoute>
+              <MyStoragePage />
+            </ProtectedRoute>
           }
         />
 

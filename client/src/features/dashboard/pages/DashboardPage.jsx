@@ -101,6 +101,24 @@ function PlayIcon() {
   );
 }
 
+function StorageIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="h-5 w-5"
+    >
+      <path
+        d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function DashboardPage() {
   const [profile, setProfile] = useState(null);
   const [modules, setModules] = useState([]);
@@ -280,6 +298,19 @@ export default function DashboardPage() {
                     style={{ width: `${overallProgress}%` }}
                   />
                 </div>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  to="/storage"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                >
+                  My Storage
+                </Link>
+
+                <span className="inline-flex items-center rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-slate-200">
+                  Upload your own materials for later use
+                </span>
               </div>
             </div>
           </div>
