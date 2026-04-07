@@ -14,6 +14,7 @@ import ManageMaterialsPage from "../features/admin/pages/ManageMaterialsPage";
 import EditModulePage from "../features/admin/pages/EditModulePage";
 import EditMaterialPage from "../features/admin/pages/EditMaterialPage";
 import MyStoragePage from "../features/storage/pages/MyStoragePage";
+import NotesPage from "../features/notes/pages/NotesPage";
 
 function Home() {
   return <Navigate to="/login" replace />;
@@ -50,6 +51,15 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/notes"
+          element={
+            <ProtectedRoute>
+              <NotesPage />
             </ProtectedRoute>
           }
         />

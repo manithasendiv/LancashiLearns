@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { auth } from "../../../firebase/config";
 import { getModuleById, getModuleMaterials } from "../services/moduleService";
@@ -6,6 +6,11 @@ import {
   getUserModuleProgress,
   toggleMaterialCompletion,
 } from "../services/progressService";
+import {
+  createNote,
+  deleteNoteById,
+  getUserModuleNotes,
+} from "../../notes/services/noteService";
 import MaterialsList from "../components/MaterialsList";
 import MaterialViewer from "../components/MaterialViewer";
 import NotebookEditor from "../components/NotebookEditor";
@@ -14,6 +19,9 @@ import CodeOutput from "../components/CodeOutput";
 import StudyAssistant from "../../../components/chat/StudyAssistant";
 import AppLayout from "../../../components/common/AppLayout";
 import PageLoader from "../../../components/common/PageLoader";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 function PanelTab({ active, onClick, children, testId }) {
   return (
@@ -40,6 +48,24 @@ function InfoChip({ children }) {
   );
 }
 
+function stripHtml(html = "") {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent || "";
+}
+
+function SparklesIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5 fill-none stroke-current stroke-2"
+    >
+      <path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z" />
+      <path d="M19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9L19 14z" />
+      <path d="M5 14l.9 2.1L8 17l-2.1.9L5 20l-.9-2.1L2 17l2.1-.9L5 14z" />
+    </svg>
+  );
+}
+
 export default function ModulePage() {
   const { moduleId } = useParams();
 
@@ -51,6 +77,16 @@ export default function ModulePage() {
   const [activePanel, setActivePanel] = useState("workbook");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [notes, setNotes] = useState([]);
+  const [selectedNoteId, setSelectedNoteId] = useState("");
+  const [selectedNoteData, setSelectedNoteData] = useState(null);
+  const [creatingNote, setCreatingNote] = useState(false);
+  const [notesBarCollapsed, setNotesBarCollapsed] = useState(true);
+
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [noteSummary, setNoteSummary] = useState("");
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
 
   const completedCount = useMemo(() => {
     return Object.values(progressMap).filter(Boolean).length;
@@ -100,6 +136,28 @@ export default function ModulePage() {
     ];
   }, [module]);
 
+  const loadModuleNotes = useCallback(async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const notesData = await getUserModuleNotes(user.uid, moduleId);
+      setNotes(notesData);
+
+      setSelectedNoteId((prev) => {
+        const exists = notesData.some((note) => note.id === prev);
+        if (exists) return prev;
+        return notesData[0]?.id || "";
+      });
+
+      if (notesData.length === 0) {
+        setSelectedNoteData(null);
+      }
+    } catch (err) {
+      console.error("Failed to load notes:", err);
+    }
+  }, [moduleId]);
+
   useEffect(() => {
     const loadModulePage = async () => {
       try {
@@ -121,6 +179,7 @@ export default function ModulePage() {
 
         const materialsData = await getModuleMaterials(moduleId);
         const progressData = await getUserModuleProgress(user.uid, moduleId);
+        const notesData = await getUserModuleNotes(user.uid, moduleId);
 
         const progressLookup = {};
         progressData.forEach((item) => {
@@ -130,6 +189,9 @@ export default function ModulePage() {
         setModule(moduleData);
         setMaterials(materialsData);
         setProgressMap(progressLookup);
+        setNotes(notesData);
+        setSelectedNoteId(notesData[0]?.id || "");
+        setSelectedNoteData(notesData[0] || null);
       } catch (err) {
         console.error(err);
         setError("Failed to load module page.");
@@ -161,6 +223,286 @@ export default function ModulePage() {
     }
   };
 
+  const handleCreateNote = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user || creatingNote) return;
+
+      setCreatingNote(true);
+
+      const created = await createNote(
+        user.uid,
+        moduleId,
+        `Untitled Note ${notes.length + 1}`
+      );
+
+      await loadModuleNotes();
+      setSelectedNoteId(created.id);
+      setSelectedNoteData(created);
+      setNoteSummary("");
+      setNotesBarCollapsed(true);
+    } catch (err) {
+      console.error("Failed to create note:", err);
+    } finally {
+      setCreatingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async () => {
+    try {
+      if (!selectedNoteId) return;
+
+      const confirmed = window.confirm(
+        "Are you sure you want to delete this note?"
+      );
+      if (!confirmed) return;
+
+      await deleteNoteById(selectedNoteId);
+      await loadModuleNotes();
+      setNoteSummary("");
+      setShowSummaryModal(false);
+    } catch (err) {
+      console.error("Failed to delete note:", err);
+    }
+  };
+
+  const handleSummarizeNote = async () => {
+    try {
+      if (!selectedNoteData?.content) {
+        setShowSummaryModal(true);
+        setNoteSummary("This note is empty, so there is nothing to summarize.");
+        return;
+      }
+
+      const plainText = stripHtml(selectedNoteData.content).trim();
+
+      setShowSummaryModal(true);
+
+      if (!plainText) {
+        setNoteSummary("This note is empty, so there is nothing to summarize.");
+        return;
+      }
+
+      setSummaryLoading(true);
+      setNoteSummary("");
+
+      const response = await fetch(`${API_BASE_URL}/api/notes/summarize`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          noteText: plainText,
+          moduleTitle: module?.title || "Unknown module",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to summarize note.");
+      }
+
+      setNoteSummary(data.summary || "No summary generated.");
+    } catch (err) {
+      console.error(err);
+      setNoteSummary(
+        "Failed to generate summary. Make sure backend server and Ollama are running."
+      );
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  const handleNoteChange = useCallback((updatedNote) => {
+    setSelectedNoteData(updatedNote);
+
+    setNotes((prev) =>
+      prev.map((note) =>
+        note.id === updatedNote.id ? { ...note, ...updatedNote } : note
+      )
+    );
+  }, []);
+
+  const renderWorkbookPanel = () => {
+    return (
+      <>
+        <div className="relative grid h-full min-h-0 gap-3 grid-rows-[auto_minmax(0,1fr)]">
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">Notes</h3>
+                  {!notesBarCollapsed && (
+                    <p className="mt-1 text-xs text-slate-500">
+                      {notes.length} page{notes.length !== 1 ? "s" : ""}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNotesBarCollapsed((prev) => !prev)}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    {notesBarCollapsed ? "Expand Notes" : "Collapse Notes"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCreateNote}
+                    disabled={creatingNote}
+                    className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                  >
+                    {creatingNote ? "Creating..." : "New Note"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDeleteNote}
+                    disabled={!selectedNoteId}
+                    className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-60"
+                  >
+                    Delete Note
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {!notesBarCollapsed && (
+              <div className="overflow-x-auto px-4 py-3">
+                <div className="flex min-w-max gap-3">
+                  {notes.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500">
+                      No notes yet. Create your first note page.
+                    </div>
+                  ) : (
+                    notes.map((note, index) => (
+                      <button
+                        key={note.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedNoteId(note.id);
+                          setSelectedNoteData(note);
+                          setNoteSummary("");
+                          setNotesBarCollapsed(true);
+                        }}
+                        className={`max-w-[220px] min-w-[220px] rounded-2xl border p-3 text-left transition ${
+                          selectedNoteId === note.id
+                            ? "border-slate-900 bg-slate-900 text-white"
+                            : "border-slate-200 bg-white hover:bg-slate-50"
+                        }`}
+                      >
+                        <p className="truncate text-sm font-semibold">
+                          {note.title || `Untitled Note ${index + 1}`}
+                        </p>
+                        <p
+                          className={`mt-1 text-xs ${
+                            selectedNoteId === note.id
+                              ? "text-slate-300"
+                              : "text-slate-500"
+                          }`}
+                        >
+                          {note.lastEditedAt?.seconds
+                            ? new Date(
+                                note.lastEditedAt.seconds * 1000
+                              ).toLocaleString()
+                            : "No save date"}
+                        </p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {notesBarCollapsed && (
+              <div className="px-4 py-2.5">
+                <select
+                  value={selectedNoteId}
+                  onChange={(e) => {
+                    const nextId = e.target.value;
+                    setSelectedNoteId(nextId);
+                    const nextNote =
+                      notes.find((note) => note.id === nextId) || null;
+                    setSelectedNoteData(nextNote);
+                    setNoteSummary("");
+                  }}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select a note</option>
+                  {notes.map((note, index) => (
+                    <option key={note.id} value={note.id}>
+                      {note.title || `Untitled Note ${index + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          <div className="h-full min-h-0 overflow-hidden">
+            <NotebookEditor
+              noteId={selectedNoteId}
+              compact
+              onNoteChange={handleNoteChange}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSummarizeNote}
+            disabled={!selectedNoteId || summaryLoading}
+            title="Summarize note"
+            className="absolute bottom-5 right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <SparklesIcon />
+          </button>
+        </div>
+
+        {showSummaryModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+            onClick={() => setShowSummaryModal(false)}
+          >
+            <div
+              className="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+                <div>
+                  <h3 className="text-xl font-semibold text-slate-900">
+                    AI Note Summary
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Summary for the selected note page
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowSummaryModal(false)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="px-6 py-5">
+                <div className="max-h-[70vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-700">
+                  {summaryLoading
+                    ? "Generating summary..."
+                    : noteSummary || "No summary generated yet."}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
   const renderRightPanelContent = () => {
     if (activePanel === "workbook") {
       return (
@@ -168,7 +510,7 @@ export default function ModulePage() {
           className="h-full min-h-0 overflow-hidden"
           data-testid="workbook-panel"
         >
-          <NotebookEditor moduleId={moduleId} compact />
+          {renderWorkbookPanel()}
         </div>
       );
     }
@@ -176,7 +518,7 @@ export default function ModulePage() {
     if (activePanel === "code" && module?.isProgrammingModule) {
       return (
         <div
-          className="grid h-full min-h-0 gap-4 grid-rows-[1fr_220px] overflow-hidden"
+          className="grid h-full min-h-0 grid-rows-[1fr_220px] gap-4 overflow-hidden"
           data-testid="code-panel"
         >
           <div className="min-h-0 overflow-hidden rounded-3xl">
@@ -266,6 +608,13 @@ export default function ModulePage() {
                   className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                 >
                   Back to Dashboard
+                </Link>
+
+                <Link
+                  to="/notes"
+                  className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Open My Notes
                 </Link>
 
                 {selectedMaterial && (
@@ -366,10 +715,10 @@ export default function ModulePage() {
           </div>
         ) : (
           <div
-            className="grid h-[85vh] w-full gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(420px,1fr)]"
+            className="grid h-[88vh] w-full gap-6 xl:grid-cols-2"
             data-testid="workspace-layout"
           >
-            <div className="flex min-h-0 h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
               <div className="border-b border-slate-200 px-5 py-4">
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
                   Material Viewer

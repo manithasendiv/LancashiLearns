@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { auth } from "../../../firebase/config";
-import { getNote, saveNote } from "../../notes/services/noteService";
+import { getNoteById, updateNote } from "../../notes/services/noteService";
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -120,15 +120,27 @@ function RedoIcon() {
   );
 }
 
-export default function NotebookEditor({ moduleId, compact = false }) {
+export default function NotebookEditor({
+  noteId,
+  compact = false,
+  onNoteChange,
+}) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saveStatus, setSaveStatus] = useState("");
   const [lastSavedText, setLastSavedText] = useState("Not saved yet");
+  const [noteTitle, setNoteTitle] = useState("");
 
   const hasLoadedNote = useRef(false);
   const autosaveTimeout = useRef(null);
+  const titleAutosaveTimeout = useRef(null);
+
+  const emitChange = (payload) => {
+    if (typeof onNoteChange === "function") {
+      onNoteChange(payload);
+    }
+  };
 
   const handleSave = async (isAutoSave = false) => {
     try {
@@ -142,8 +154,23 @@ export default function NotebookEditor({ moduleId, compact = false }) {
         return;
       }
 
+      if (!noteId) {
+        setError("No note selected.");
+        return;
+      }
+
       const htmlContent = editor?.getHTML() || "<p></p>";
-      await saveNote(user.uid, moduleId, htmlContent);
+
+      await updateNote(noteId, {
+        title: noteTitle.trim() || "Untitled Note",
+        content: htmlContent,
+      });
+
+      emitChange({
+        id: noteId,
+        title: noteTitle.trim() || "Untitled Note",
+        content: htmlContent,
+      });
 
       const now = new Date();
       setLastSavedText(`Last saved: ${now.toLocaleString()}`);
@@ -172,15 +199,15 @@ export default function NotebookEditor({ moduleId, compact = false }) {
       attributes: {
         class: [
           "tiptap",
-          compact ? "min-h-[280px] px-4 py-4" : "min-h-[380px] px-5 py-5",
+          compact ? "min-h-[780px] px-4 py-4" : "min-h-[860px] px-5 py-5",
           "bg-slate-50",
           "text-[15px] leading-7 text-slate-700",
           "outline-none",
         ].join(" "),
       },
     },
-    onUpdate: () => {
-      if (!hasLoadedNote.current) return;
+    onUpdate: ({ editor }) => {
+      if (!hasLoadedNote.current || !noteId) return;
 
       if (autosaveTimeout.current) {
         clearTimeout(autosaveTimeout.current);
@@ -188,8 +215,33 @@ export default function NotebookEditor({ moduleId, compact = false }) {
 
       setSaveStatus("Typing...");
 
-      autosaveTimeout.current = setTimeout(() => {
-        handleSave(true);
+      autosaveTimeout.current = setTimeout(async () => {
+        try {
+          setSaving(true);
+          setSaveStatus("Autosaving...");
+
+          const htmlContent = editor.getHTML();
+
+          await updateNote(noteId, {
+            title: noteTitle.trim() || "Untitled Note",
+            content: htmlContent,
+          });
+
+          emitChange({
+            id: noteId,
+            title: noteTitle.trim() || "Untitled Note",
+            content: htmlContent,
+          });
+
+          setLastSavedText(`Last saved: ${new Date().toLocaleString()}`);
+          setSaveStatus("Autosaved");
+        } catch (err) {
+          console.error(err);
+          setError("Failed to autosave note.");
+          setSaveStatus("Save failed");
+        } finally {
+          setSaving(false);
+        }
       }, 2000);
     },
   });
@@ -200,17 +252,28 @@ export default function NotebookEditor({ moduleId, compact = false }) {
         setLoading(true);
         setError("");
         setSaveStatus("");
+        hasLoadedNote.current = false;
 
-        const user = auth.currentUser;
-        if (!user) {
-          setError("No authenticated user found.");
+        if (!noteId) {
+          setNoteTitle("");
+          if (editor) {
+            editor.commands.setContent("<p></p>", false);
+          }
+          setLastSavedText("Not saved yet");
           return;
         }
 
-        const note = await getNote(user.uid, moduleId);
+        const note = await getNoteById(noteId);
+
+        if (!note) {
+          setError("Note not found.");
+          return;
+        }
+
+        setNoteTitle(note.title || "Untitled Note");
 
         if (editor) {
-          editor.commands.setContent(note?.content || "<p></p>");
+          editor.commands.setContent(note.content || "<p></p>", false);
         }
 
         if (note?.lastEditedAt?.seconds) {
@@ -234,11 +297,51 @@ export default function NotebookEditor({ moduleId, compact = false }) {
     }
 
     return () => {
-      if (autosaveTimeout.current) {
-        clearTimeout(autosaveTimeout.current);
-      }
+      if (autosaveTimeout.current) clearTimeout(autosaveTimeout.current);
+      if (titleAutosaveTimeout.current) clearTimeout(titleAutosaveTimeout.current);
     };
-  }, [editor, moduleId]);
+  }, [editor, noteId]);
+
+  const handleTitleChange = (value) => {
+    setNoteTitle(value);
+
+    if (!hasLoadedNote.current || !noteId) return;
+
+    if (titleAutosaveTimeout.current) {
+      clearTimeout(titleAutosaveTimeout.current);
+    }
+
+    setSaveStatus("Typing...");
+
+    titleAutosaveTimeout.current = setTimeout(async () => {
+      try {
+        setSaving(true);
+        setSaveStatus("Autosaving...");
+
+        const htmlContent = editor?.getHTML() || "<p></p>";
+
+        await updateNote(noteId, {
+          title: value.trim() || "Untitled Note",
+          content: htmlContent,
+        });
+
+        emitChange({
+          id: noteId,
+          title: value.trim() || "Untitled Note",
+          content: htmlContent,
+        });
+
+        setLastSavedText(`Last saved: ${new Date().toLocaleString()}`);
+        setSaveStatus("Autosaved");
+      } catch (err) {
+        console.error(err);
+        setError("Failed to update title.");
+        setSaveStatus("Save failed");
+      } finally {
+        setSaving(false);
+      }
+    }, 1000);
+  };
 
   const handleClear = () => {
     const confirmed = window.confirm("Are you sure you want to clear this note?");
@@ -273,10 +376,10 @@ export default function NotebookEditor({ moduleId, compact = false }) {
   }
 
   return (
-    <div className="notebook-editor h-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+    <div
+      className="notebook-editor flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
       data-testid="notebook-editor"
     >
-      
       <style>{`
         .notebook-editor .tiptap {
           caret-color: #0f172a;
@@ -328,40 +431,48 @@ export default function NotebookEditor({ moduleId, compact = false }) {
         }
       `}</style>
 
-      <div className={`${compact ? "px-4 py-4" : "px-6 py-5"} border-b border-slate-200`}>
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
+      <div className={`${compact ? "px-4 py-3" : "px-6 py-4"} border-b border-slate-200`}>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 flex-1">
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
                 Workbook
               </p>
-              <h2 className="mt-1 text-xl font-semibold text-slate-900">
-                Personal Notebook
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
+
+              <input
+                type="text"
+                value={noteTitle}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                placeholder="Note title"
+                disabled={!noteId}
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-lg font-semibold text-slate-900 outline-none focus:border-slate-400"
+              />
+
+              <p className="mt-2 text-sm text-slate-500">
                 Keep quick notes, summaries, and revision points here.
               </p>
             </div>
 
             <div className="flex gap-2">
-  <button
-    type="button"
-    onClick={() => handleSave(false)}
-    data-testid="notebook-save"
-    disabled={saving}
-    className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-70"
-  >
-    {saving ? "Saving..." : "Save"}
-  </button>
+              <button
+                type="button"
+                onClick={() => handleSave(false)}
+                data-testid="notebook-save"
+                disabled={saving || !noteId}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-70"
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
 
-  <button
-    type="button"
-    onClick={handleClear}
-    className="px-4 py-2 rounded-lg bg-slate-200 text-slate-800 text-sm font-medium hover:bg-slate-300"
-  >
-    Clear
-  </button>
-</div>
+              <button
+                type="button"
+                onClick={handleClear}
+                disabled={!noteId}
+                className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-300 disabled:opacity-70"
+              >
+                Clear
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -370,15 +481,15 @@ export default function NotebookEditor({ moduleId, compact = false }) {
             <span
               className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-medium ${getStatusClasses()}`}
             >
-              {saveStatus || "Ready"}
+              {noteId ? saveStatus || "Ready" : "Select a note"}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-hidden bg-slate-50/60">
-        <div className="h-full overflow-y-auto">
-          <div className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur-sm">
+      <div className="flex-1 min-h-0 bg-slate-50/60">
+        <div className="h-full min-h-0 overflow-y-auto">
+          <div className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50/95 px-4 py-2 backdrop-blur-sm">
             <div className="flex flex-wrap gap-2">
               <ToolbarButton
                 title="Bold"
@@ -454,7 +565,9 @@ export default function NotebookEditor({ moduleId, compact = false }) {
             </div>
           </div>
 
-          <EditorContent editor={editor} />
+          <div className="min-h-full">
+            <EditorContent editor={editor} />
+          </div>
         </div>
       </div>
 

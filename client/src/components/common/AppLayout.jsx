@@ -10,10 +10,13 @@ export default function AppLayout({ children, fullWidth = true }) {
   const dashboardPath = isAdminPage ? "/admin" : "/dashboard";
   const logoPath = isAdminPage ? "/admin" : "/dashboard";
 
-  const navItems = [
-    { id: "dashboard", name: "Dashboard", path: dashboardPath },
-    { id: "profile", name: "Profile", path: "/profile" },
-  ];
+  const navItems = isAdminPage
+    ? [{ id: "dashboard", name: "Dashboard", path: dashboardPath }]
+    : [
+        { id: "dashboard", name: "Dashboard", path: dashboardPath },
+        { id: "notes", name: "Notes", path: "/notes" },
+        { id: "profile", name: "Profile", path: "/profile" },
+      ];
 
   const isActive = (path) => {
     if (path === "/dashboard") {
@@ -31,6 +34,10 @@ export default function AppLayout({ children, fullWidth = true }) {
       return location.pathname === "/profile";
     }
 
+    if (path === "/notes") {
+      return location.pathname === "/notes";
+    }
+
     return location.pathname === path;
   };
 
@@ -44,6 +51,10 @@ export default function AppLayout({ children, fullWidth = true }) {
       location.pathname.startsWith("/modules/")
     ) {
       return "Dashboard";
+    }
+
+    if (location.pathname === "/notes") {
+      return "Notes";
     }
 
     if (location.pathname === "/profile") {
