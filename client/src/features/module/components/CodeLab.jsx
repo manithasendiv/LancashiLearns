@@ -2,28 +2,36 @@ import { useState } from "react";
 import Editor from "@monaco-editor/react";
 
 export default function CodeLab({ onOutputChange, compact = false }) {
+  // Tracks currently selected execution language.
   const [language, setLanguage] = useState("javascript");
+  // Holds editor source before sending to backend.
   const [code, setCode] = useState("// Write your code here");
+  // Prevents duplicate submissions while execution is in progress.
   const [running, setRunning] = useState(false);
 
   const handleRun = async () => {
     try {
+      // Push immediate feedback so users know execution started.
       setRunning(true);
       onOutputChange("Running code...");
 
+      // Submit code to backend execution endpoint.
       const response = await fetch("http://localhost:5000/api/execute", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          // Backend expects this exact payload shape.
           language,
           sourceCode: code,
         }),
       });
 
+      // Parse JSON response from the executor service.
       const data = await response.json();
 
+      // Surface backend/compiler errors directly in the output panel.
       if (!response.ok) {
         onOutputChange(data.error || "Execution failed.");
         return;
@@ -31,9 +39,11 @@ export default function CodeLab({ onOutputChange, compact = false }) {
 
       onOutputChange(data.output || "No output returned.");
     } catch (error) {
+      // Network/backend failures are surfaced as a human-friendly fallback.
       console.error("Run code error:", error);
       onOutputChange("Failed to connect to backend.");
     } finally {
+      // Always re-enable run button after request completes.
       setRunning(false);
     }
   };
@@ -52,6 +62,7 @@ export default function CodeLab({ onOutputChange, compact = false }) {
 
         <select
           value={language}
+          // Keeps language selector synchronized with local state.
           onChange={(e) => setLanguage(e.target.value)}
           className="border border-slate-300 rounded-lg px-3 py-2"
         >
@@ -65,8 +76,10 @@ export default function CodeLab({ onOutputChange, compact = false }) {
       <div className="rounded-xl overflow-hidden border border-slate-300 flex-1 min-h-0">
         <Editor
           height="100%"
+          // Monaco expects "cpp" for C++ highlighting mode.
           language={language === "cpp" ? "cpp" : language}
           value={code}
+          // Normalize empty editor changes to an empty string.
           onChange={(value) => setCode(value || "")}
           theme="vs-light"
         />

@@ -10,6 +10,7 @@ import {
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
+// Default assistant greeting shown for empty/new conversations.
 const DEFAULT_ASSISTANT_TEXT =
   "Hi, I’m your study assistant. Ask me to explain this lesson, summarize it, or generate quiz questions.";
 
@@ -20,11 +21,13 @@ export default function StudyAssistant({
   materialContent,
   compact = false,
 }) {
+  // Reused starter message object for fresh chat sessions.
   const defaultMessage = {
     role: "assistant",
     content: DEFAULT_ASSISTANT_TEXT,
   };
 
+  // Auth and message lifecycle state.
   const [userId, setUserId] = useState(null);
   const [authReady, setAuthReady] = useState(false);
   const [messages, setMessages] = useState([defaultMessage]);
@@ -34,6 +37,7 @@ export default function StudyAssistant({
   const messagesRef = useRef(null);
 
   useEffect(() => {
+    // Track signed-in user so chat history is scoped per student account.
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUserId(user?.uid || null);
       setAuthReady(true);
@@ -43,6 +47,7 @@ export default function StudyAssistant({
   }, []);
 
   useEffect(() => {
+    // Load persistent chat history when auth/module context is ready.
     const loadHistory = async () => {
       if (!authReady) return;
 
@@ -50,6 +55,7 @@ export default function StudyAssistant({
         setLoadingHistory(true);
 
         if (!userId || !moduleId) {
+          // Without scope keys, show only the default assistant hint.
           setMessages([defaultMessage]);
           return;
         }
@@ -57,6 +63,7 @@ export default function StudyAssistant({
         const savedMessages = await getChatMessages(userId, moduleId);
 
         if (savedMessages.length > 0) {
+          // Keep id/role/content shape expected by chat renderer.
           setMessages(
             savedMessages.map(({ id, role, content }) => ({
               id,
@@ -79,6 +86,7 @@ export default function StudyAssistant({
   }, [authReady, userId, moduleId]);
 
   useEffect(() => {
+    // Auto-scroll to the latest message after updates.
     requestAnimationFrame(() => {
       if (messagesRef.current) {
         messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
@@ -87,6 +95,7 @@ export default function StudyAssistant({
   }, [messages, sending]);
 
   const handleQuickPrompt = (prompt) => {
+    // Prefills textarea to speed up common tasks.
     setInput(prompt);
   };
 
@@ -94,6 +103,7 @@ export default function StudyAssistant({
     try {
       if (!userId || !moduleId) return;
 
+      // Delete persisted history and reset local thread.
       await clearChatMessages(userId, moduleId);
       setMessages([defaultMessage]);
     } catch (error) {
@@ -104,6 +114,7 @@ export default function StudyAssistant({
   const handleSend = async (e) => {
     e.preventDefault();
 
+    // Guard empty submissions and parallel sends.
     const text = input.trim();
     if (!text || sending) return;
 
@@ -118,6 +129,7 @@ export default function StudyAssistant({
     }
 
     const tempUserMessageId = `temp-user-${Date.now()}`;
+    // Temporary ids allow optimistic rendering before DB-generated ids return.
     const userMessage = {
       id: tempUserMessageId,
       role: "user",
@@ -127,10 +139,12 @@ export default function StudyAssistant({
     const updatedMessages = [...messages, userMessage];
 
     setMessages(updatedMessages);
+    // Clear input immediately for responsive feel.
     setInput("");
     setSending(true);
 
     try {
+      // Save user message first so chat history stays durable.
       const savedUserMessage = await saveChatMessage(userId, moduleId, userMessage);
 
       setMessages((prev) =>
@@ -139,6 +153,7 @@ export default function StudyAssistant({
         )
       );
 
+      // Exclude the canned welcome text so only real conversation reaches the model.
       const usableHistory = messages
         .filter(
           (msg) =>
@@ -155,6 +170,7 @@ export default function StudyAssistant({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          // Send lesson context and short history to improve answer relevance.
           message: text,
           moduleTitle,
           materialTitle,
@@ -167,6 +183,7 @@ export default function StudyAssistant({
       let data = {};
 
       try {
+        // Parse manually so invalid JSON can surface a clear error.
         data = rawText ? JSON.parse(rawText) : {};
       } catch {
         throw new Error(`Invalid server response: ${rawText}`);
@@ -183,6 +200,7 @@ export default function StudyAssistant({
         content: data.reply || "No response generated.",
       };
 
+      // Optimistically render assistant text, then replace with DB-backed record id.
       setMessages((prev) => [...prev, assistantMessage]);
 
       const savedAssistantMessage = await saveChatMessage(
@@ -199,6 +217,7 @@ export default function StudyAssistant({
     } catch (error) {
       console.error("Chatbot error:", error);
 
+      // Graceful fallback message when AI backend is unavailable.
       const tempFallbackId = `temp-fallback-${Date.now()}`;
       const fallbackMessage = {
         id: tempFallbackId,
@@ -210,6 +229,7 @@ export default function StudyAssistant({
       setMessages((prev) => [...prev, fallbackMessage]);
 
       try {
+        // Persist fallback too so history remains consistent.
         const savedFallbackMessage = await saveChatMessage(
           userId,
           moduleId,
@@ -225,6 +245,7 @@ export default function StudyAssistant({
         console.error("Failed to save fallback message:", saveError);
       }
     } finally {
+      // Re-enable send button after request lifecycle ends.
       setSending(false);
     }
   };
@@ -285,6 +306,7 @@ export default function StudyAssistant({
         className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-slate-50/70 min-h-0"
       >
         {loadingHistory ? (
+          // Loading placeholder while pulling persisted history.
           <div className="text-sm text-slate-500">Loading chat history...</div>
         ) : (
           messages.map((message, index) => {
@@ -310,6 +332,7 @@ export default function StudyAssistant({
         )}
 
         {sending && (
+          // Lightweight pending indicator while waiting for assistant reply.
           <div className="flex justify-start">
             <div className="bg-white text-slate-500 border border-slate-200 rounded-2xl px-4 py-3 text-sm shadow-sm">
               Thinking...

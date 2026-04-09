@@ -23,6 +23,7 @@ import PageLoader from "../../../components/common/PageLoader";
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
+// Reusable tab button for right-panel mode switching.
 function PanelTab({ active, onClick, children, testId }) {
   return (
     <button
@@ -40,6 +41,7 @@ function PanelTab({ active, onClick, children, testId }) {
   );
 }
 
+// Small badge used in module metadata header.
 function InfoChip({ children }) {
   return (
     <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
@@ -48,11 +50,13 @@ function InfoChip({ children }) {
   );
 }
 
+// Converts rich HTML content into plain text for prompt-safe API requests.
 function stripHtml(html = "") {
   const doc = new DOMParser().parseFromString(html, "text/html");
   return doc.body.textContent || "";
 }
 
+// Icon for the floating AI summary action button.
 function SparklesIcon() {
   return (
     <svg
@@ -69,15 +73,19 @@ function SparklesIcon() {
 export default function ModulePage() {
   const { moduleId } = useParams();
 
+  // Core module and material state.
   const [module, setModule] = useState(null);
   const [materials, setMaterials] = useState([]);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [progressMap, setProgressMap] = useState({});
+  // Output panel state for code execution mode.
   const [codeOutput, setCodeOutput] = useState("Output will appear here.");
+  // Controls right-panel content (workbook, code, chatbot).
   const [activePanel, setActivePanel] = useState("workbook");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Note selection and UI controls.
   const [notes, setNotes] = useState([]);
   const [selectedNoteId, setSelectedNoteId] = useState("");
   const [selectedNoteData, setSelectedNoteData] = useState(null);
@@ -88,16 +96,19 @@ export default function ModulePage() {
   const [noteSummary, setNoteSummary] = useState("");
   const [showSummaryModal, setShowSummaryModal] = useState(false);
 
+  // Count completed materials from the lookup map.
   const completedCount = useMemo(() => {
     return Object.values(progressMap).filter(Boolean).length;
   }, [progressMap]);
 
+  // Derive completion percentage for the circular/linear progress UI.
   const totalCount = materials.length;
   const progressPercent =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   const materialTitle = useMemo(() => {
     if (!selectedMaterial) return "";
+    // Pick first available title field from mixed material schemas.
     return (
       selectedMaterial.title ||
       selectedMaterial.name ||
@@ -109,6 +120,7 @@ export default function ModulePage() {
   const materialContent = useMemo(() => {
     if (!selectedMaterial) return "";
 
+    // Different material sources use different field names; collapse them to one value.
     return (
       selectedMaterial.content ||
       selectedMaterial.text ||
@@ -122,6 +134,7 @@ export default function ModulePage() {
   }, [selectedMaterial]);
 
   const availablePanels = useMemo(() => {
+    // Programming modules expose code execution in addition to notes/chat.
     if (module?.isProgrammingModule) {
       return [
         { id: "workbook", label: "Workbook" },
@@ -141,6 +154,7 @@ export default function ModulePage() {
       const user = auth.currentUser;
       if (!user) return;
 
+      // Refresh notes and keep previous selection if it still exists.
       const notesData = await getUserModuleNotes(user.uid, moduleId);
       setNotes(notesData);
 
@@ -151,6 +165,7 @@ export default function ModulePage() {
       });
 
       if (notesData.length === 0) {
+        // Clear editor state when no notes are available.
         setSelectedNoteData(null);
       }
     } catch (err) {
@@ -159,6 +174,7 @@ export default function ModulePage() {
   }, [moduleId]);
 
   useEffect(() => {
+    // Initial page load fetches module metadata, materials, progress, and notes.
     const loadModulePage = async () => {
       try {
         setLoading(true);
@@ -181,6 +197,7 @@ export default function ModulePage() {
         const progressData = await getUserModuleProgress(user.uid, moduleId);
         const notesData = await getUserModuleNotes(user.uid, moduleId);
 
+        // Convert progress records into a quick lookup map for toggle/render speed.
         const progressLookup = {};
         progressData.forEach((item) => {
           progressLookup[item.materialId] = item.completed;
@@ -196,6 +213,7 @@ export default function ModulePage() {
         console.error(err);
         setError("Failed to load module page.");
       } finally {
+        // End loading regardless of success/failure path.
         setLoading(false);
       }
     };
@@ -204,6 +222,7 @@ export default function ModulePage() {
   }, [moduleId]);
 
   useEffect(() => {
+    // Reset panel to workbook whenever module/material context changes.
     setActivePanel("workbook");
   }, [moduleId, selectedMaterial?.id]);
 
@@ -212,6 +231,7 @@ export default function ModulePage() {
       const user = auth.currentUser;
       if (!user) return;
 
+      // Persist completion in backend and mirror state locally.
       await toggleMaterialCompletion(user.uid, moduleId, materialId, completed);
 
       setProgressMap((prev) => ({
@@ -236,6 +256,7 @@ export default function ModulePage() {
         `Untitled Note ${notes.length + 1}`
       );
 
+      // Reload to preserve canonical ordering/metadata from backend.
       await loadModuleNotes();
       setSelectedNoteId(created.id);
       setSelectedNoteData(created);
@@ -252,6 +273,7 @@ export default function ModulePage() {
     try {
       if (!selectedNoteId) return;
 
+      // Client-side safety prompt before destructive delete.
       const confirmed = window.confirm(
         "Are you sure you want to delete this note?"
       );
@@ -268,12 +290,14 @@ export default function ModulePage() {
 
   const handleSummarizeNote = async () => {
     try {
+      // Short-circuit empty notes with an immediate modal message.
       if (!selectedNoteData?.content) {
         setShowSummaryModal(true);
         setNoteSummary("This note is empty, so there is nothing to summarize.");
         return;
       }
 
+      // Strip rich-text HTML before sending note content to the summarization API.
       const plainText = stripHtml(selectedNoteData.content).trim();
 
       setShowSummaryModal(true);
@@ -303,6 +327,7 @@ export default function ModulePage() {
         throw new Error(data?.error || "Failed to summarize note.");
       }
 
+      // Render model output in the summary modal.
       setNoteSummary(data.summary || "No summary generated.");
     } catch (err) {
       console.error(err);
@@ -315,6 +340,7 @@ export default function ModulePage() {
   };
 
   const handleNoteChange = useCallback((updatedNote) => {
+    // Keep selected note and list preview in sync with editor autosaves.
     setSelectedNoteData(updatedNote);
 
     setNotes((prev) =>
@@ -327,6 +353,7 @@ export default function ModulePage() {
   const renderWorkbookPanel = () => {
     return (
       <>
+        {/* Notes strip + editor + summarize FAB are grouped as workbook mode. */}
         <div className="relative grid h-full min-h-0 gap-3 grid-rows-[auto_minmax(0,1fr)]">
           <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-4 py-3">
@@ -343,6 +370,7 @@ export default function ModulePage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
+                    // Toggle between compact dropdown mode and horizontal note cards.
                     onClick={() => setNotesBarCollapsed((prev) => !prev)}
                     className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                   >
@@ -383,6 +411,7 @@ export default function ModulePage() {
                         key={note.id}
                         type="button"
                         onClick={() => {
+                          // Selecting a card binds note content into NotebookEditor.
                           setSelectedNoteId(note.id);
                           setSelectedNoteData(note);
                           setNoteSummary("");
@@ -423,6 +452,7 @@ export default function ModulePage() {
                   value={selectedNoteId}
                   onChange={(e) => {
                     const nextId = e.target.value;
+                    // Keep selected note object synced with selected note id.
                     setSelectedNoteId(nextId);
                     const nextNote =
                       notes.find((note) => note.id === nextId) || null;
@@ -452,6 +482,7 @@ export default function ModulePage() {
 
           <button
             type="button"
+            // Triggers backend summarization for currently selected note.
             onClick={handleSummarizeNote}
             disabled={!selectedNoteId || summaryLoading}
             title="Summarize note"
@@ -462,6 +493,7 @@ export default function ModulePage() {
         </div>
 
         {showSummaryModal && (
+          // Modal is dismissible by clicking outside or close button.
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
             onClick={() => setShowSummaryModal(false)}
@@ -504,6 +536,7 @@ export default function ModulePage() {
   };
 
   const renderRightPanelContent = () => {
+    // Workbook mode: note-taking UI.
     if (activePanel === "workbook") {
       return (
         <div
@@ -516,6 +549,7 @@ export default function ModulePage() {
     }
 
     if (activePanel === "code" && module?.isProgrammingModule) {
+      // Code mode: editor plus output console for programming modules.
       return (
         <div
           className="grid h-full min-h-0 grid-rows-[1fr_220px] gap-4 overflow-hidden"
@@ -535,6 +569,7 @@ export default function ModulePage() {
     }
 
     if (activePanel === "chatbot") {
+      // Chat mode: contextual assistant fed with module/material data.
       return (
         <div
           className="h-full min-h-0 overflow-hidden"
@@ -555,10 +590,12 @@ export default function ModulePage() {
   };
 
   if (loading) {
+    // Full-page loader while initial data dependencies resolve.
     return <PageLoader text="Loading module..." />;
   }
 
   if (error) {
+    // Show recoverable error banner inside standard app layout.
     return (
       <AppLayout fullWidth>
         <div className="w-full">
@@ -692,6 +729,7 @@ export default function ModulePage() {
         </div>
 
         {!selectedMaterial ? (
+          // Left state before material selection: show material catalog.
           <div
             className="w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
             data-testid="materials-section"
@@ -714,6 +752,7 @@ export default function ModulePage() {
             />
           </div>
         ) : (
+          // Workspace split view after selecting a material.
           <div
             className="grid h-[88vh] w-full gap-6 xl:grid-cols-2"
             data-testid="workspace-layout"

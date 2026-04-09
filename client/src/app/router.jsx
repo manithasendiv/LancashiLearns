@@ -17,17 +17,22 @@ import MyStoragePage from "../features/storage/pages/MyStoragePage";
 import NotesPage from "../features/notes/pages/NotesPage";
 
 function Home() {
+  // Keep root deterministic by sending users to the auth entry page.
   return <Navigate to="/login" replace />;
 }
 
 export default function AppRouter() {
   return (
+    // BrowserRouter provides clean URL navigation for the single-page app.
     <BrowserRouter>
+      {/* Routes acts as a switch and renders the first matching route. */}
       <Routes>
+        {/* Public entry redirect and auth pages. */}
         <Route path="/" element={<Home />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
 
+        {/* Student-only/private pages are wrapped with the auth guard. */}
         <Route
           path="/academic-selection"
           element={
@@ -73,6 +78,7 @@ export default function AppRouter() {
           }
         />
 
+        {/* Admin-only pages are grouped under dedicated admin paths. */}
         <Route
           path="/admin"
           element={
@@ -136,6 +142,7 @@ export default function AppRouter() {
           }
         />
 
+        {/* Unknown paths resolve to login instead of a blank/404 screen. */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

@@ -4,13 +4,17 @@ import dotenv from "dotenv";
 import axios from "axios";
 import { fileURLToPath } from "url";
 
+// Loads environment variables from .env before app initialization.
 dotenv.config();
 
 const app = express();
 
+// Enables cross-origin requests from the frontend app.
 app.use(cors());
+// Parses JSON request bodies with a safe size limit.
 app.use(express.json({ limit: "2mb" }));
 
+// Maps UI language options to Judge0 language IDs.
 const languageMap = {
   javascript: 63,
   cpp: 54,
@@ -21,24 +25,29 @@ const languageMap = {
 const OLLAMA_API_URL = process.env.OLLAMA_API_URL;
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL;
 
+// Simple root probe endpoint.
 app.get("/", (req, res) => {
   res.send("API is running");
 });
 
+// Health endpoint used by tests and service checks.
 app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
 
+// Executes user code through Judge0 and returns normalized output.
 app.post("/api/execute", async (req, res) => {
   try {
     const { language, sourceCode } = req.body;
 
+    // Validate required payload.
     if (!language || !sourceCode) {
       return res.status(400).json({
         error: "Language and source code are required.",
       });
     }
 
+    // Resolve UI language key to Judge0 numeric id.
     const language_id = languageMap[language];
 
     if (!language_id) {
@@ -47,6 +56,7 @@ app.post("/api/execute", async (req, res) => {
       });
     }
 
+    // Wait synchronously for compilation/execution result.
     const response = await axios.post(
       `${process.env.JUDGE0_API_URL}/submissions?base64_encoded=false&wait=true`,
       {
@@ -62,6 +72,7 @@ app.post("/api/execute", async (req, res) => {
 
     const result = response.data;
 
+    // Return the first meaningful output field regardless of compiler/runtime stage.
     const output =
       result.stdout ||
       result.stderr ||
@@ -71,6 +82,7 @@ app.post("/api/execute", async (req, res) => {
 
     return res.json({ output });
   } catch (error) {
+    // Log provider details for easier troubleshooting.
     console.error(
       "Judge0 execution error:",
       error.response?.data || error.message
@@ -82,6 +94,7 @@ app.post("/api/execute", async (req, res) => {
   }
 });
 
+// Context-aware study assistant endpoint backed by Ollama chat models.
 app.post("/api/chat", async (req, res) => {
   try {
     const {
@@ -98,11 +111,13 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
+    // Cap context size so prompts stay bounded and avoid runaway token usage.
     const safeMaterialContent =
       typeof materialContent === "string"
         ? materialContent.slice(0, 6000)
         : "";
 
+    // Keep only a small, valid tail of chat history to preserve continuity.
     const safeHistory = Array.isArray(chatHistory)
       ? chatHistory
           .filter(
@@ -137,6 +152,7 @@ Lesson context:
 ${safeMaterialContent || "No lesson content provided."}
     `.trim();
 
+    // Compose chat payload with system instruction, prior context, and latest prompt.
     const messages = [
       {
         role: "system",
@@ -149,6 +165,7 @@ ${safeMaterialContent || "No lesson content provided."}
       },
     ];
 
+    // Call Ollama chat API with non-streaming response for simpler frontend handling.
     const ollamaResponse = await axios.post(
       OLLAMA_API_URL,
       {
@@ -171,6 +188,7 @@ ${safeMaterialContent || "No lesson content provided."}
 
     return res.json({ reply });
   } catch (error) {
+    // Bubble meaningful model/service errors to the client.
     console.error(
       "Ollama chat error:",
       error.response?.data || error.message
@@ -185,6 +203,7 @@ ${safeMaterialContent || "No lesson content provided."}
   }
 });
 
+// Summarizes a student note into revision-friendly structure.
 app.post("/api/notes/summarize", async (req, res) => {
   try {
     const { noteText, moduleTitle } = req.body;
@@ -195,8 +214,10 @@ app.post("/api/notes/summarize", async (req, res) => {
       });
     }
 
+    // Trim and cap note length to keep summarization prompts reliable.
     const safeNoteText = noteText.trim().slice(0, 12000);
 
+    // Prompt template for structured summary output.
     const messages = [
       {
         role: "system",
@@ -227,6 +248,7 @@ ${safeNoteText}
       },
     ];
 
+    // Run summarization on the configured Ollama model.
     const ollamaResponse = await axios.post(
       OLLAMA_API_URL,
       {
@@ -265,9 +287,11 @@ ${safeNoteText}
 
 export default app;
 
+// Prevents server from auto-listening during test imports.
 const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
 
 if (isMainModule) {
+  // Read port from env so deployment and local runs share the same entry.
   const PORT = process.env.PORT;
 
   app.listen(PORT, () => {

@@ -7,6 +7,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Highlight from "@tiptap/extension-highlight";
 import Placeholder from "@tiptap/extension-placeholder";
 
+// Shared icon button for formatting toolbar actions.
 function ToolbarButton({ onClick, active, title, children }) {
   return (
     <button
@@ -25,6 +26,7 @@ function ToolbarButton({ onClick, active, title, children }) {
   );
 }
 
+// SVG icon for bold formatting action.
 function BoldIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
@@ -34,6 +36,7 @@ function BoldIcon() {
   );
 }
 
+// SVG icon for italic formatting action.
 function ItalicIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
@@ -44,6 +47,7 @@ function ItalicIcon() {
   );
 }
 
+// SVG icon for heading level 1 action.
 function H1Icon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
@@ -56,6 +60,7 @@ function H1Icon() {
   );
 }
 
+// SVG icon for heading level 2 action.
 function H2Icon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
@@ -67,6 +72,7 @@ function H2Icon() {
   );
 }
 
+// SVG icon for unordered list action.
 function BulletListIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
@@ -80,6 +86,7 @@ function BulletListIcon() {
   );
 }
 
+// SVG icon for ordered list action.
 function NumberedListIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
@@ -92,6 +99,7 @@ function NumberedListIcon() {
   );
 }
 
+// SVG icon for text highlight action.
 function HighlightIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
@@ -102,6 +110,7 @@ function HighlightIcon() {
   );
 }
 
+// SVG icon for undo action.
 function UndoIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
@@ -111,6 +120,7 @@ function UndoIcon() {
   );
 }
 
+// SVG icon for redo action.
 function RedoIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-2">
@@ -125,6 +135,7 @@ export default function NotebookEditor({
   compact = false,
   onNoteChange,
 }) {
+  // Async state flags and status text for load/save UX.
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -132,16 +143,19 @@ export default function NotebookEditor({
   const [lastSavedText, setLastSavedText] = useState("Not saved yet");
   const [noteTitle, setNoteTitle] = useState("");
 
+  // Prevent autosave from firing while initial note content is being hydrated.
   const hasLoadedNote = useRef(false);
   const autosaveTimeout = useRef(null);
   const titleAutosaveTimeout = useRef(null);
 
+  // Emits updates back to parent so note list can refresh immediately.
   const emitChange = (payload) => {
     if (typeof onNoteChange === "function") {
       onNoteChange(payload);
     }
   };
 
+  // Manual save handler shared by the Save button and status updates.
   const handleSave = async (isAutoSave = false) => {
     try {
       setSaving(true);
@@ -161,6 +175,7 @@ export default function NotebookEditor({
 
       const htmlContent = editor?.getHTML() || "<p></p>";
 
+      // Persist both title and rich text body in a single write.
       await updateNote(noteId, {
         title: noteTitle.trim() || "Untitled Note",
         content: htmlContent,
@@ -185,6 +200,7 @@ export default function NotebookEditor({
   };
 
   const editor = useEditor({
+    // StarterKit provides core marks/nodes; extensions add highlight + placeholders.
     extensions: [
       StarterKit,
       Highlight,
@@ -194,6 +210,7 @@ export default function NotebookEditor({
       }),
     ],
     content: "<p></p>",
+    // Avoid immediate SSR render mismatch in React runtime.
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -207,6 +224,7 @@ export default function NotebookEditor({
       },
     },
     onUpdate: ({ editor }) => {
+      // Ignore updates before note hydration to avoid overwriting server content.
       if (!hasLoadedNote.current || !noteId) return;
 
       if (autosaveTimeout.current) {
@@ -217,11 +235,13 @@ export default function NotebookEditor({
 
       autosaveTimeout.current = setTimeout(async () => {
         try {
+          // Debounced autosave reduces write traffic while keeping edits resilient.
           setSaving(true);
           setSaveStatus("Autosaving...");
 
           const htmlContent = editor.getHTML();
 
+          // Persist debounced content edits.
           await updateNote(noteId, {
             title: noteTitle.trim() || "Untitled Note",
             content: htmlContent,
@@ -247,6 +267,7 @@ export default function NotebookEditor({
   });
 
   useEffect(() => {
+    // Loads selected note into editor whenever noteId changes.
     const loadNote = async () => {
       try {
         setLoading(true);
@@ -255,6 +276,7 @@ export default function NotebookEditor({
         hasLoadedNote.current = false;
 
         if (!noteId) {
+          // Reset editor when no note is selected.
           setNoteTitle("");
           if (editor) {
             editor.commands.setContent("<p></p>", false);
@@ -273,6 +295,7 @@ export default function NotebookEditor({
         setNoteTitle(note.title || "Untitled Note");
 
         if (editor) {
+          // Inject server content without triggering update hooks.
           editor.commands.setContent(note.content || "<p></p>", false);
         }
 
@@ -297,11 +320,13 @@ export default function NotebookEditor({
     }
 
     return () => {
+      // Cancel pending autosave timers on unmount/switch.
       if (autosaveTimeout.current) clearTimeout(autosaveTimeout.current);
       if (titleAutosaveTimeout.current) clearTimeout(titleAutosaveTimeout.current);
     };
   }, [editor, noteId]);
 
+  // Debounced title writer to avoid one request per keystroke.
   const handleTitleChange = (value) => {
     setNoteTitle(value);
 
@@ -315,6 +340,7 @@ export default function NotebookEditor({
 
     titleAutosaveTimeout.current = setTimeout(async () => {
       try {
+        // Title updates are saved separately so renames persist without manual save.
         setSaving(true);
         setSaveStatus("Autosaving...");
 
@@ -344,6 +370,7 @@ export default function NotebookEditor({
   };
 
   const handleClear = () => {
+    // Require confirmation before clearing note content.
     const confirmed = window.confirm("Are you sure you want to clear this note?");
     if (!confirmed) return;
 
@@ -352,6 +379,7 @@ export default function NotebookEditor({
   };
 
   const getStatusClasses = () => {
+    // Visual status chip mapping for save lifecycle states.
     if (saveStatus === "Save failed") {
       return "border-red-200 bg-red-50 text-red-600";
     }
@@ -368,6 +396,7 @@ export default function NotebookEditor({
   };
 
   if (loading || !editor) {
+    // Render loading skeleton while tiptap instance and note content initialize.
     return (
       <div className="h-full rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
         <p className="text-sm text-slate-500">Loading note...</p>
@@ -381,6 +410,7 @@ export default function NotebookEditor({
       data-testid="notebook-editor"
     >
       <style>{`
+        /* Editor typography and placeholder styling scoped to this component. */
         .notebook-editor .tiptap {
           caret-color: #0f172a;
         }
@@ -442,6 +472,7 @@ export default function NotebookEditor({
               <input
                 type="text"
                 value={noteTitle}
+                // Title changes are autosaved via debounce.
                 onChange={(e) => handleTitleChange(e.target.value)}
                 placeholder="Note title"
                 disabled={!noteId}
@@ -456,6 +487,7 @@ export default function NotebookEditor({
             <div className="flex gap-2">
               <button
                 type="button"
+                // Explicit save remains available in addition to autosave.
                 onClick={() => handleSave(false)}
                 data-testid="notebook-save"
                 disabled={saving || !noteId}
@@ -466,6 +498,7 @@ export default function NotebookEditor({
 
               <button
                 type="button"
+                // Local clear updates editor immediately; autosave syncs to backend.
                 onClick={handleClear}
                 disabled={!noteId}
                 className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-300 disabled:opacity-70"
@@ -549,6 +582,7 @@ export default function NotebookEditor({
 
               <ToolbarButton
                 title="Undo"
+                // Undo/redo rely on tiptap transaction history.
                 onClick={() => editor.chain().focus().undo().run()}
                 active={false}
               >
